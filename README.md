@@ -14,7 +14,7 @@ Open `index.html` in a browser, or serve the folder (`npx serve .`) to get the s
 - `static/models/*.glb`: compact, 18k-face display meshes for the Koala and Kangaroo visualizers. They are derived from the corresponding verified mesh outputs; the original print meshes are not published.
 - `static/images/{kangaroo,koala}_{trellis2,sas}_{supports,removed}.jpg`: 1.75:1 crops of the print photos, colour-balanced to the
   same white level as the paper figures.
-- Source clips and photos: the 2026-11-13 prints (kangaroo and koala, 60 mm, Bambu Lab H2D). Re-encode with
+- Source clips and photos: the 2026-11-13 prints (kangaroo and koala, 100 mm, Bambu Lab H2D). Re-encode with
   `tools/encode_media.sh "<folder with the original clips>"`.
 
 | Clip | Shows |
