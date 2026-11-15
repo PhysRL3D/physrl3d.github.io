@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PhysRL3D</title>
+<meta name="description" content="PhysRL3D: simulator-free post-training for material-efficient and stable image-to-3D generation. Real 3D prints and videos.">
+<meta name="robots" content="noindex, nofollow">
+<style>
+:root {
+  --bg: #ffffff; --fg: #1d1d1f; --muted: #5f6368; --line: #e3e3e6; --card: #f6f6f8;
+  --accent: #2f5fa7; --bad: #c62828; --ok: #2e7d32; --chip: #eef2f9;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121316; --fg: #ececf0; --muted: #a2a6ad; --line: #2b2d33; --card: #1b1d22;
+    --accent: #8ab4f8; --bad: #ef6b6b; --ok: #6cc070; --chip: #232833;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121316; --fg: #ececf0; --muted: #a2a6ad; --line: #2b2d33; --card: #1b1d22;
+  --accent: #8ab4f8; --bad: #ef6b6b; --ok: #6cc070; --chip: #232833;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+main { max-width: 980px; margin: 0 auto; padding: 40px 16px 64px; }
+header.hero { text-align: center; margin-bottom: 28px; }
+h1 { font-size: clamp(1.6rem, 4vw, 2.5rem); line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; }
+h1 .sub { display: block; font-size: 0.55em; font-weight: 500; color: var(--muted); margin-top: 8px; }
+.authors { color: var(--muted); margin: 12px 0 4px; }
+.venue { color: var(--muted); font-size: 0.95rem; }
+.links { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+.links a, .links span { display: inline-block; padding: 8px 16px; border-radius: 999px; background: var(--fg); color: var(--bg);
+  text-decoration: none; font-weight: 600; font-size: 0.95rem; }
+.links span { background: var(--chip); color: var(--muted); cursor: default; }
+section { margin-top: 44px; }
+h2 { font-size: 1.45rem; margin: 0 0 12px; }
+h3 { font-size: 1.1rem; margin: 26px 0 8px; }
+p { margin: 0 0 12px; }
+.lead { font-size: 1.05rem; }
+figure { margin: 0; }
+figcaption { color: var(--muted); font-size: 0.92rem; margin-top: 8px; }
+video, img { display: block; width: 100%; height: auto; border-radius: 10px; background: var(--card); }
+.teaser video { border-radius: 14px; }
+.method-figure { width: 100%; border: 1px solid var(--line); padding: 8px; background: #fff; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.sim-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.compare-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-top: 18px; }
+.comparison { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: var(--card); }
+.comparison h3 { margin: 0 0 8px; }
+.comparison .input { margin: 0 0 10px; }
+.comparison .input img { width: 74px; border: 1px solid var(--line); }
+.turntable { --reveal: .5; position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 10px; background: #f7f8fb; touch-action: none; }
+.turntable video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
+.turntable .base-layer { position: absolute; inset: 0 auto 0 0; width: calc(var(--reveal) * 100%); overflow: hidden; z-index: 2; }
+.turntable .base-layer video { width: 200%; max-width: none; }
+.turntable .divider { position: absolute; top: 0; bottom: 0; left: calc(var(--reveal) * 100%); width: 2px; transform: translateX(-1px); background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.18); z-index: 3; pointer-events: none; }
+.turntable .divider::after { content: "↔"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 34px; height: 34px; border-radius: 50%; background: #fff; color: #202124; display: grid; place-items: center; font-weight: 700; box-shadow: 0 1px 5px rgba(0,0,0,.25); }
+.turntable input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; z-index: 4; }
+.turntable .side-label { position: absolute; bottom: 9px; z-index: 3; font-size: .76rem; font-weight: 700; padding: 3px 7px; border-radius: 5px; color: #fff; pointer-events: none; }
+.turntable .left-label { left: 9px; background: rgba(150,52,48,.92); }.turntable .right-label { right: 9px; background: rgba(25,92,150,.92); }
+.comparison-note { margin: 9px 0 0; color: var(--muted); font-size: .88rem; }
+.viewer-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-top: 18px; }
+.mesh-viewer { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: var(--card); }
+.mesh-viewer h3 { margin: 0 0 8px; }
+.viewer-stage { position: relative; min-height: 320px; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: #f7f8fb; touch-action: none; outline: none; }
+.viewer-stage:focus-visible { box-shadow: 0 0 0 3px rgba(47,95,167,.35); }
+.viewer-stage canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+.viewer-stage canvas:active { cursor: grabbing; }
+.viewer-status { position: absolute; inset: 0; display: grid; place-items: center; color: #5f6368; font-size: .9rem; pointer-events: none; }
+.viewer-status[hidden] { display: none; }
+.viewer-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.viewer-toolbar button { border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--fg); padding: 6px 10px; font: inherit; font-size: .84rem; font-weight: 650; cursor: pointer; }
+.viewer-toolbar button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #fff; }
+.viewer-toolbar .viewer-reset { margin-left: auto; }
+.viewer-help { margin: 9px 0 0; color: var(--muted); font-size: .88rem; }
+.print-gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.print-gallery img { aspect-ratio: 1.34; object-fit: cover; }
+.clips-lp { display: grid; grid-template-columns: minmax(0, 3.16fr) minmax(0, 1fr); gap: 14px; align-items: start; margin-top: 18px; }
+.clips-pp { display: grid; grid-template-columns: repeat(2, minmax(0, 280px)); justify-content: center; gap: 14px; margin-top: 18px; }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.state { position: relative; }
+.state .tag { position: absolute; left: 8px; top: 8px; font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 6px;
+  background: rgba(0,0,0,0.6); color: #fff; }
+.method { font-weight: 700; margin: 0 0 6px; }
+.badge { display: inline-block; font-size: 0.8rem; font-weight: 700; color: #fff; border-radius: 6px; padding: 2px 8px; margin-top: 6px; }
+.badge.bad { background: var(--bad); } .badge.ok { background: var(--ok); }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; margin-top: 10px; }
+th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+th:first-child, td:first-child { text-align: left; }
+thead th { color: var(--muted); font-weight: 600; }
+.note { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; color: var(--muted); font-size: 0.93rem; }
+.input { display: flex; gap: 14px; align-items: center; }
+.input img { width: 140px; flex: none; }
+pre { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; overflow-x: auto; font-size: 0.85rem; }
+footer { margin-top: 56px; color: var(--muted); font-size: 0.85rem; text-align: center; }
+@media (max-width: 720px) {
+  .grid4, .sim-grid, .print-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid2, .pair, .clips-lp, .compare-grid, .viewer-grid { grid-template-columns: 1fr; }
+  .clips-pp { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .input { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+<main>
+
+<header class="hero">
+  <h1>PhysRL3D<span class="sub">Simulator-Free Post-Training for Material-Efficient and Stable Image-to-3D Generation</span></h1>
+  <p class="authors">Anonymous authors</p>
+  <p class="venue">Under review</p>
+  <div class="links">
+    <a href="#abstract">Abstract</a>
+    <a href="#method">Method</a>
+    <a href="#simulation">3D comparisons</a>
+    <a href="#prints">Real prints</a>
+  </div>
+</header>
+
+<section class="teaser">
+  <figure>
+    <video autoplay muted loop playsinline preload="auto" poster="static/images/kangaroo_pair_halfspeed_poster.jpg">
+      <source src="static/videos/kangaroo_pair_halfspeed.webm" type="video/webm">
+      <source src="static/videos/kangaroo_pair_halfspeed.mp4" type="video/mp4">
+    </video>
+    <figcaption>Real prints of the same input image after their supports are removed. The TRELLIS.2 kangaroo (left) falls over as
+      soon as it is let go; the PhysRL3D-SAS kangaroo (right) stands. Played at half speed.</figcaption>
+  </figure>
+</section>
+
+<section id="abstract">
+  <h2>Abstract</h2>
+  <p>Image-to-3D generators improve visual fidelity, yet outputs may topple when placed upright or require substantial support material
+  while printing. Jointly optimizing stability and print-material use remains challenging. Stability feedback often relies on physics
+  simulation, while geometry-based objectives overlook the material cost of infill and overhang supports. We present PhysRL3D, a
+  reinforcement learning framework that post-trains an image-to-3D generator for stable, material-efficient fabrication. From voxel
+  occupancy, PhysRL3D computes a center-of-mass margin for standability and a slicer-inspired material reward that accounts for infill,
+  overhang supports, and savings from reshaping geometry to reduce support. Two image-space rewards preserve fidelity to the input. To
+  balance stability and material use, we introduce Stability-driven Adaptive Scheduling (SAS) for reweighing the objectives. SAS tracks
+  each objective's progress relative to a frozen base model and prioritizes stability initially. Stability progress is then used as the
+  primary signal for adapting the geometry and material reward weights. Training requires neither 3D ground-truth nor human labels, and
+  adds no inference-time cost. On HY3D-Bench, ours raises the standable rate from 84.8% to 98.2%, reduces print-material use by 14.4%,
+  and lowers Chamfer distance by 16.6%. Selected physical prints show improved standability, reduced print mass, and preserved geometric
+  fidelity.</p>
+</section>
+
+<section id="method">
+  <h2>Method</h2>
+  <figure>
+    <img class="method-figure" src="static/images/method_pipeline.png" alt="Overview of PhysRL3D: a base diffusion model is post-trained with verifiable stability, geometry, and material rewards; Stability-driven Adaptive Scheduling balances the rewards.">
+    <figcaption>PhysRL3D post-trains a diffusion image-to-3D model using verifiable physical rewards. Stability-driven Adaptive Scheduling (SAS) reweights stability, geometry, and material objectives according to progress relative to a frozen reference model.</figcaption>
+  </figure>
+</section>
+
+<section id="simulation">
+  <h2>Interactive 3D comparisons</h2>
+  <p class="lead">Drag the divider to inspect the same generated object from every view. Both clips in each comparison are 360° turntable renders from the corresponding verified output mesh, using a shared camera, duration, and rotation rate.</p>
+  <div class="compare-grid">
+    <article class="comparison">
+      <h3>Koala</h3>
+      <div class="input"><img src="static/images/input_koala.png" alt="Input image: a cartoon koala hugging a tree trunk"><p>Baseline and PhysRL3D-SAS generated from the same input image.</p></div>
+      <div class="turntable" style="--reveal:.5">
+        <video autoplay muted loop playsinline preload="metadata" poster="static/images/koala-physrl3d-turntable.png"><source src="static/videos/koala-physrl3d-turntable.webm" type="video/webm"><source src="static/videos/koala-physrl3d-turntable.mp4" type="video/mp4"></video>
+        <div class="base-layer"><video autoplay muted loop playsinline preload="metadata" poster="static/images/koala-base-turntable.png"><source src="static/videos/koala-base-turntable.webm" type="video/webm"><source src="static/videos/koala-base-turntable.mp4" type="video/mp4"></video></div>
+        <span class="side-label left-label">TRELLIS.2</span><span class="side-label right-label">PhysRL3D-SAS</span><span class="divider"></span>
+        <input type="range" min="0" max="100" value="50" aria-label="Reveal comparison between TRELLIS.2 and PhysRL3D-SAS koala turntables">
+      </div>
+      <p class="comparison-note">Red: TRELLIS.2. Blue: <strong>PhysRL3D-SAS</strong>. The clips loop continuously.</p>
+    </article>
+    <article class="comparison">
+      <h3>Kangaroo</h3>
+      <div class="input"><img src="static/images/input_kangaroo.png" alt="Input image: a cartoon kangaroo standing upright"><p>Baseline and PhysRL3D-SAS generated from the same input image.</p></div>
+      <div class="turntable" style="--reveal:.5">
+        <video autoplay muted loop playsinline preload="metadata" poster="static/images/kangaroo-physrl3d-turntable.png"><source src="static/videos/kangaroo-physrl3d-turntable.webm" type="video/webm"><source src="static/videos/kangaroo-physrl3d-turntable.mp4" type="video/mp4"></video>
+        <div class="base-layer"><video autoplay muted loop playsinline preload="metadata" poster="static/images/kangaroo-base-turntable.png"><source src="static/videos/kangaroo-base-turntable.webm" type="video/webm"><source src="static/videos/kangaroo-base-turntable.mp4" type="video/mp4"></video></div>
+        <span class="side-label left-label">TRELLIS.2</span><span class="side-label right-label">PhysRL3D-SAS</span><span class="divider"></span>
+        <input type="range" min="0" max="100" value="50" aria-label="Reveal comparison between TRELLIS.2 and PhysRL3D-SAS kangaroo turntables">
+      </div>
+      <p class="comparison-note">Red: TRELLIS.2. Blue: <strong>PhysRL3D-SAS</strong>. The clips loop continuously.</p>
+    </article>
+  </div>
+
+  <h3>Explore the generated meshes</h3>
+  <p>Inspect the same verified outputs directly: drag to orbit, use the scroll wheel or pinch gesture to zoom, and reset the view at any time. Choose either method to load its compact display mesh.</p>
+  <div class="viewer-grid">
+    <article class="mesh-viewer" data-baseline="static/models/koala-baseline.glb" data-ours="static/models/koala-physrl3d.glb" data-name="Koala">
+      <h3>Koala visualizer</h3>
+      <div class="viewer-stage" tabindex="0" aria-label="Interactive Koala mesh viewer"><span class="viewer-status">Loading mesh…</span></div>
+      <div class="viewer-toolbar" role="group" aria-label="Koala mesh selection">
+        <button type="button" data-model="baseline" aria-pressed="false">TRELLIS.2</button>
+        <button type="button" data-model="ours" aria-pressed="true">PhysRL3D-SAS</button>
+        <button type="button" class="viewer-reset">Reset view</button>
+      </div>
+      <p class="viewer-help">Drag to rotate · scroll or pinch to zoom · the selected mesh is shown in full 3D.</p>
+    </article>
+    <article class="mesh-viewer" data-baseline="static/models/kangaroo-baseline.glb" data-ours="static/models/kangaroo-physrl3d.glb" data-name="Kangaroo">
+      <h3>Kangaroo visualizer</h3>
+      <div class="viewer-stage" tabindex="0" aria-label="Interactive Kangaroo mesh viewer"><span class="viewer-status">Loading mesh…</span></div>
+      <div class="viewer-toolbar" role="group" aria-label="Kangaroo mesh selection">
+        <button type="button" data-model="baseline" aria-pressed="false">TRELLIS.2</button>
+        <button type="button" data-model="ours" aria-pressed="true">PhysRL3D-SAS</button>
+        <button type="button" class="viewer-reset">Reset view</button>
+      </div>
+      <p class="viewer-help">Drag to rotate · scroll or pinch to zoom · the selected mesh is shown in full 3D.</p>
+    </article>
+  </div>
+
+  <h3>Airplane: measured rigid-body simulation</h3>
+  <p>The airplane mesh was not retained with the review assets, so it is shown only through its measured before/after simulation states rather than a reconstructed rotation.</p>
+  <div class="sim-grid" style="margin-top:14px">
+    <figure class="state"><img src="static/images/input_airplane.png" alt="Input image of a passenger airplane" loading="lazy"><span class="tag">input image</span></figure>
+    <figure class="state"><img src="static/images/airplane_trellis2_sim_release.jpg" alt="TRELLIS.2 airplane at the start of a rigid-body simulation" loading="lazy"><span class="tag">TRELLIS.2: release</span></figure>
+    <figure class="state"><img src="static/images/airplane_trellis2_sim_after.jpg" alt="TRELLIS.2 airplane after the rigid-body simulation, tipped over" loading="lazy"><span class="tag">TRELLIS.2: tipped over</span></figure>
+  </div>
+  <p class="note" style="margin-top:14px">Only the turntables above use archived 3D meshes. The airplane panels show the measured before/after states of the same generated object; the videos below are separate, cropped real-print demonstrations.</p>
+</section>
+
+<section id="prints">
+  <h2>Real 3D prints</h2>
+  <p class="lead">Each pair is TRELLIS.2 and PhysRL3D-SAS generated from the same input image, scaled to 60&nbsp;mm and printed together
+  on one plate.</p>
+  <p class="note">Bambu Lab H2D, PLA, the slicer's default tree supports and 15% infill; white = object, blue = support. Weights are read
+  from a kitchen scale with 1&nbsp;g resolution, with the supports attached and after removing them.</p>
+
+  <div class="print-gallery" aria-label="Physical 3D print gallery">
+    <img src="static/images/kangaroo_trellis2_removed.jpg" alt="TRELLIS.2 kangaroo after support removal" loading="lazy">
+    <img src="static/images/kangaroo_sas_removed.jpg" alt="PhysRL3D-SAS kangaroo after support removal" loading="lazy">
+    <img src="static/images/koala_trellis2_removed.jpg" alt="TRELLIS.2 koala after support removal" loading="lazy">
+    <img src="static/images/koala_sas_removed.jpg" alt="PhysRL3D-SAS koala after support removal" loading="lazy">
+    <img src="static/images/airplane_sas_supports.jpg" alt="PhysRL3D-SAS airplane printed with supports" loading="lazy">
+    <img src="static/images/airplane_sas_removed.jpg" alt="PhysRL3D-SAS airplane after support removal" loading="lazy">
+  </div>
+
+  <h3>Kangaroo: TRELLIS.2 falls over once its supports are removed</h3>
+  <div class="input">
+    <img src="static/images/input_kangaroo.png" alt="Input image: a cartoon kangaroo standing upright, front view">
+    <p>Both prints need about the same support (2&nbsp;g each). Without supports, the TRELLIS.2 kangaroo stands on two narrow hind feet
+    and falls over; the PhysRL3D-SAS kangaroo stands on broad feet. The PhysRL3D-SAS print is heavier (15&nbsp;g against 11&nbsp;g).</p>
+  </div>
+  <div class="pair" style="margin-top:14px">
+    <div>
+      <p class="method">TRELLIS.2</p>
+      <div class="grid2">
+        <figure class="state"><img src="static/images/kangaroo_trellis2_supports.jpg" alt="TRELLIS.2 kangaroo printed with blue tree supports" loading="lazy"><span class="tag">with supports</span></figure>
+        <figure class="state"><img src="static/images/kangaroo_trellis2_removed.jpg" alt="TRELLIS.2 kangaroo lying on its side after its supports are removed" loading="lazy"><span class="tag">supports removed</span></figure>
+      </div>
+      <span class="badge bad">✗ falls over without supports</span>
+    </div>
+    <div>
+      <p class="method">PhysRL3D-SAS</p>
+      <div class="grid2">
+        <figure class="state"><img src="static/images/kangaroo_sas_supports.jpg" alt="PhysRL3D-SAS kangaroo printed with blue tree supports" loading="lazy"><span class="tag">with supports</span></figure>
+        <figure class="state"><img src="static/images/kangaroo_sas_removed.jpg" alt="PhysRL3D-SAS kangaroo standing after its supports are removed" loading="lazy"><span class="tag">supports removed</span></figure>
+      </div>
+      <span class="badge ok">✓ stands without supports</span>
+    </div>
+  </div>
+  <div class="clips-lp">
+    <figure>
+      <video controls muted loop playsinline preload="metadata" poster="static/images/kangaroo_trellis2_falls_a_poster.jpg">
+        <source src="static/videos/kangaroo_trellis2_falls_a.webm" type="video/webm">
+        <source src="static/videos/kangaroo_trellis2_falls_a.mp4" type="video/mp4">
+      </video>
+      <figcaption>The TRELLIS.2 kangaroo, placed upright and released (real time).</figcaption>
+    </figure>
+    <figure>
+      <video controls muted loop playsinline preload="metadata" poster="static/images/kangaroo_trellis2_falls_b_poster.jpg">
+        <source src="static/videos/kangaroo_trellis2_falls_b.webm" type="video/webm">
+        <source src="static/videos/kangaroo_trellis2_falls_b.mp4" type="video/mp4">
+      </video>
+      <figcaption>Further attempts from other directions (real time).</figcaption>
+    </figure>
+  </div>
+
+  <h3>Koala: both stand; PhysRL3D-SAS prints a lighter body</h3>
+  <div class="input">
+    <img src="static/images/input_koala.png" alt="Input image: a cartoon koala hugging a tree trunk with leaves">
+    <p>Both koalas weigh 22&nbsp;g with their supports and both stand once the supports are removed. The PhysRL3D-SAS body weighs
+    17&nbsp;g against 19&nbsp;g for TRELLIS.2, but its supports weigh 5&nbsp;g against 3&nbsp;g.</p>
+  </div>
+  <div class="pair" style="margin-top:14px">
+    <div>
+      <p class="method">TRELLIS.2</p>
+      <div class="grid2">
+        <figure class="state"><img src="static/images/koala_trellis2_supports.jpg" alt="TRELLIS.2 koala printed with blue tree supports" loading="lazy"><span class="tag">with supports</span></figure>
+        <figure class="state"><img src="static/images/koala_trellis2_removed.jpg" alt="TRELLIS.2 koala on the scale after its supports are removed, seen from above" loading="lazy"><span class="tag">supports removed</span></figure>
+      </div>
+      <span class="badge ok">✓ stands without supports</span>
+    </div>
+    <div>
+      <p class="method">PhysRL3D-SAS</p>
+      <div class="grid2">
+        <figure class="state"><img src="static/images/koala_sas_supports.jpg" alt="PhysRL3D-SAS koala printed with blue tree supports" loading="lazy"><span class="tag">with supports</span></figure>
+        <figure class="state"><img src="static/images/koala_sas_removed.jpg" alt="PhysRL3D-SAS koala on the scale after its supports are removed, seen from above" loading="lazy"><span class="tag">supports removed</span></figure>
+      </div>
+      <span class="badge ok">✓ stands without supports</span>
+    </div>
+  </div>
+  <div class="clips-pp">
+    <figure>
+      <video controls muted loop playsinline preload="metadata" poster="static/images/koala_pair_front_poster.jpg">
+        <source src="static/videos/koala_pair_front.webm" type="video/webm">
+        <source src="static/videos/koala_pair_front.mp4" type="video/mp4">
+      </video>
+      <figcaption>Front view after support removal: TRELLIS.2 (left), PhysRL3D-SAS (right).</figcaption>
+    </figure>
+    <figure>
+      <video controls muted loop playsinline preload="metadata" poster="static/images/koala_pair_back_poster.jpg">
+        <source src="static/videos/koala_pair_back.webm" type="video/webm">
+        <source src="static/videos/koala_pair_back.mp4" type="video/mp4">
+      </video>
+      <figcaption>The same two prints from behind: PhysRL3D-SAS (left), TRELLIS.2 (right).</figcaption>
+    </figure>
+  </div>
+
+  <h3>Airplane: TRELLIS.2 is not printable</h3>
+  <div class="input">
+    <img src="static/images/input_airplane.png" alt="Input image: a cartoon passenger airplane">
+    <p>The TRELLIS.2 airplane tips over in rigid-body simulation, so it was not printed; its frames show the simulation at release and
+    after release. The PhysRL3D-SAS airplane prints with 2&nbsp;g of supports (6&nbsp;g object) and rests flat once they are removed.</p>
+  </div>
+  <div class="pair" style="margin-top:14px">
+    <div>
+      <p class="method">TRELLIS.2</p>
+      <div class="grid2">
+        <figure class="state"><img src="static/images/airplane_trellis2_sim_release.jpg" alt="Simulation of the TRELLIS.2 airplane at release" loading="lazy"><span class="tag">simulation, at release</span></figure>
+        <figure class="state"><img src="static/images/airplane_trellis2_sim_after.jpg" alt="Simulation of the TRELLIS.2 airplane tipped over after release" loading="lazy"><span class="tag">simulation, after release</span></figure>
+      </div>
+      <span class="badge bad">✗ tips over in simulation: not printable</span>
+    </div>
+    <div>
+      <p class="method">PhysRL3D-SAS</p>
+      <div class="grid2">
+        <figure class="state"><img src="static/images/airplane_sas_supports.jpg" alt="PhysRL3D-SAS airplane printed with supports" loading="lazy"><span class="tag">with supports</span></figure>
+        <figure class="state"><img src="static/images/airplane_sas_removed.jpg" alt="PhysRL3D-SAS airplane after its supports are removed, seen from above" loading="lazy"><span class="tag">supports removed</span></figure>
+      </div>
+      <span class="badge ok">✓ rests flat without supports</span>
+    </div>
+  </div>
+
+  <h3>Print weights</h3>
+  <table>
+    <thead><tr><th>Print (60 mm)</th><th>With supports</th><th>Without supports</th><th>Supports</th><th>After removal</th></tr></thead>
+    <tbody>
+      <tr><td>Kangaroo, TRELLIS.2</td><td>13 g</td><td>11 g</td><td>2 g (15%)</td><td>falls over</td></tr>
+      <tr><td>Kangaroo, PhysRL3D-SAS</td><td>17 g</td><td>15 g</td><td>2 g (12%)</td><td>stands</td></tr>
+      <tr><td>Koala, TRELLIS.2</td><td>22 g</td><td>19 g</td><td>3 g (14%)</td><td>stands</td></tr>
+      <tr><td>Koala, PhysRL3D-SAS</td><td>22 g</td><td>17 g</td><td>5 g (23%)</td><td>stands</td></tr>
+      <tr><td>Airplane, TRELLIS.2</td><td colspan="3">not printable (tips over in simulation)</td><td>–</td></tr>
+      <tr><td>Airplane, PhysRL3D-SAS</td><td>8 g</td><td>6 g</td><td>2 g (25%)</td><td>rests flat</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="citation">
+  <h2>Citation</h2>
+  <pre>@inproceedings{physrl3d,
+  title  = {PhysRL3D: Simulator-Free Post-Training for Material-Efficient and Stable Image-to-3D Generation},
+  author = {Anonymous},
+  note   = {Under review}
+}</pre>
+</section>
+
+<footer>Draft page. Photos and videos are unedited apart from cropping, colour balance and resizing.</footer>
+</main>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"}}
+</script>
+<script>
+for (const comparison of document.querySelectorAll('.turntable')) {
+  const slider = comparison.querySelector('input[type="range"]');
+  const videos = comparison.querySelectorAll('video');
+  const baselineVideo = comparison.querySelector('.base-layer video');
+  const update = () => {
+    const reveal = Math.max(0.02, slider.value / 100);
+    comparison.style.setProperty('--reveal', reveal);
+    baselineVideo.style.width = `${100 / reveal}%`;
+  };
+  slider.addEventListener('input', update);
+  update();
+  const [ours, baseline] = videos;
+  for (const video of videos) video.addEventListener('play', () => {
+    const other = video === ours ? baseline : ours;
+    if (Math.abs(other.currentTime - video.currentTime) > 0.14) other.currentTime = video.currentTime;
+    if (other.paused) other.play().catch(() => {});
+  });
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const loader = new GLTFLoader();
+const colours = { baseline: 0xc65b55, ours: 0x2878b5 };
+
+function disposeModel(model) {
+  model.traverse((child) => {
+    if (child.isMesh) {
+      child.geometry?.dispose();
+      child.material?.dispose();
+    }
+  });
+}
+
+function createViewer(host) {
+  const stage = host.querySelector('.viewer-stage');
+  const status = host.querySelector('.viewer-status');
+  const name = host.dataset.name;
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xf7f8fb);
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.domElement.setAttribute('aria-label', `${name} interactive 3D model`);
+  stage.appendChild(renderer.domElement);
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x71809a, 2.8));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 2.6);
+  keyLight.position.set(3, 5, 4);
+  scene.add(keyLight);
+  const fillLight = new THREE.DirectionalLight(0xffffff, 1.1);
+  fillLight.position.set(-4, 1, -3);
+  scene.add(fillLight);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 0.75;
+  controls.maxDistance = 7;
+  controls.enablePan = false;
+  let activeModel = null;
+  let loadId = 0;
+
+  function resize() {
+    const rect = stage.getBoundingClientRect();
+    renderer.setSize(rect.width, rect.height, false);
+    camera.aspect = rect.width / Math.max(rect.height, 1);
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage);
+  resize();
+
+  function frame() {
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  frame();
+
+  function setButtons(selected) {
+    host.querySelectorAll('[data-model]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.model === selected));
+    });
+  }
+
+  function frameCamera(model) {
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    model.position.sub(center);
+    const largestSide = Math.max(size.x, size.y, size.z);
+    const scale = 1.65 / Math.max(largestSide, 0.001);
+    model.scale.setScalar(scale);
+    controls.target.set(0, 0, 0);
+    camera.position.set(2.2, 1.6, 2.5);
+    camera.lookAt(0, 0, 0);
+    controls.saveState();
+    controls.update();
+  }
+
+  function loadModel(kind) {
+    const requestId = ++loadId;
+    status.hidden = false;
+    status.textContent = `Loading ${kind === 'baseline' ? 'TRELLIS.2' : 'PhysRL3D-SAS'} mesh…`;
+    loader.load(host.dataset[kind], (gltf) => {
+      if (requestId !== loadId) return;
+      if (activeModel) {
+        scene.remove(activeModel);
+        disposeModel(activeModel);
+      }
+      activeModel = gltf.scene;
+      activeModel.traverse((child) => {
+        if (!child.isMesh) return;
+        child.material = new THREE.MeshStandardMaterial({ color: colours[kind], roughness: 0.72, metalness: 0.02 });
+        child.castShadow = false;
+      });
+      scene.add(activeModel);
+      frameCamera(activeModel);
+      setButtons(kind);
+      status.hidden = true;
+    }, undefined, () => {
+      if (requestId !== loadId) return;
+      status.textContent = 'The interactive mesh could not be loaded. The turntable above remains available.';
+    });
+  }
+
+  host.querySelectorAll('[data-model]').forEach((button) => button.addEventListener('click', () => loadModel(button.dataset.model)));
+  host.querySelector('.viewer-reset').addEventListener('click', () => controls.reset());
+  stage.addEventListener('keydown', (event) => {
+    if (event.key === 'r' || event.key === 'R') controls.reset();
+  });
+  loadModel('ours');
+}
+
+document.querySelectorAll('.mesh-viewer').forEach(createViewer);
+</script>
+</body>
+</html>
