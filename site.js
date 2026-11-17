@@ -24,7 +24,7 @@ const autoButton=document.getElementById('highlight-auto');
 function autoUI(){autoButton.textContent=auto?'Ⅱ Pause auto-browse':'▶ Auto-browse';autoButton.setAttribute('aria-pressed',String(auto));}
 autoButton.onclick=()=>{auto=!auto;lastAdvance=performance.now();autoUI();};autoUI();
 new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;lastAdvance=performance.now();}).observe(track);
-setInterval(()=>{if(!auto||!visible||document.hidden||hover||track.contains(document.activeElement)||cards.some(c=>[...c.querySelectorAll('video')].some(v=>!v.paused)))return;if(performance.now()-lastAdvance>9000)go(slide+1);},500);
+setInterval(()=>{if(!auto||!visible||document.hidden||hover||document.getElementById('highlights').contains(document.activeElement)||cards.some(c=>[...c.querySelectorAll('video')].some(v=>!v.paused)))return;if(performance.now()-lastAdvance>9000)go(slide+1);},500);
 document.addEventListener('visibilitychange',()=>{lastAdvance=performance.now();if(document.hidden)document.querySelectorAll('video').forEach(v=>v.pause());});
 const highlightVideo=document.getElementById('highlight-video');
 highlightVideo.addEventListener('error',()=>{const note=document.createElement('p');note.className='small-note';note.textContent='Video unavailable. The poster is a real-print still; no motion is being simulated.';highlightVideo.after(note);},{once:true});
