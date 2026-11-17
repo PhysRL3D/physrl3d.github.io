@@ -1,5 +1,47 @@
 'use strict';
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+// All currently public moving examples are immediately before the paper overview.
+// Muted, visible-only playback; each pair keeps its original camera/time alignment.
+{
+ const gallery=document.getElementById('examples'),rail=document.getElementById('motion-track');
+ const items=[...rail.querySelectorAll('.motion-card')],videos=[...rail.querySelectorAll('video')];
+ const play=document.getElementById('motion-play'),browse=document.getElementById('motion-auto'),layout=document.getElementById('motion-layout');
+ let playing=!reduced.matches,browsing=!reduced.matches,expanded=false,hovered=false,drag=null,advanceAt=performance.now(),filter='all';
+ const inView=new Set();
+ function isPlayable(card){return playing&&!document.hidden&&!card.hidden&&inView.has(card);}
+ function syncPlayback(){
+  play.textContent=playing?'Ⅱ Pause videos':'▶ Play videos';play.setAttribute('aria-pressed',String(playing));
+  for(const card of items){const button=card.querySelector('.motion-start');
+   if(!isPlayable(card)){card.querySelectorAll('video').forEach(v=>v.pause());button.hidden=true;continue;}
+   for(const v of card.querySelectorAll('video')){v.muted=true;if(v.error)continue;v.play().then(()=>{button.hidden=true;}).catch(()=>{if(isPlayable(card))button.hidden=false;});}
+  }
+ }
+ function browseUI(){browse.textContent=browsing?'Ⅱ Pause browse':'▶ Auto-browse';browse.setAttribute('aria-pressed',String(browsing));browse.disabled=expanded;}
+ function bounds(){document.getElementById('motion-prev').disabled=expanded||rail.scrollLeft<2;document.getElementById('motion-next').disabled=expanded||rail.scrollLeft>=rail.scrollWidth-rail.clientWidth-2;}
+ function move(direction,wrap=false){const visible=items.filter(c=>!c.hidden);if(!visible.length)return;const step=visible[0].clientWidth+14,max=rail.scrollWidth-rail.clientWidth;let next=rail.scrollLeft+direction*step;if(wrap&&next>max+2)next=0;rail.scrollTo({left:Math.max(0,Math.min(max,next)),behavior:reduced.matches?'instant':'smooth'});advanceAt=performance.now();}
+ const observer=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting&&entry.intersectionRatio>.08)inView.add(entry.target);else inView.delete(entry.target);}syncPlayback();},{threshold:[0,.08,.25]});
+ for(const card of items){observer.observe(card);const pair=[...card.querySelectorAll('video')],first=pair[0],timer=card.querySelector('.motion-time');
+  card.querySelector('.motion-start').onclick=()=>{playing=true;syncPlayback();};
+  first.addEventListener('timeupdate',()=>{timer.textContent=first.currentTime.toFixed(1)+' s';if(pair[1]&&!first.seeking&&Number.isFinite(pair[1].duration)&&Math.abs(pair[1].currentTime-first.currentTime)>.18)pair[1].currentTime=Math.min(first.currentTime,pair[1].duration);});
+  pair.forEach(v=>v.addEventListener('error',()=>{if(card.querySelector('.motion-error'))return;const error=document.createElement('p');error.className='motion-error';error.textContent='Clip unavailable. Please reload or view the original below.';card.querySelector('.motion-media').append(error);},{once:true}));
+ }
+ play.onclick=()=>{playing=!playing;syncPlayback();};
+ document.getElementById('motion-replay').onclick=()=>{for(const card of items)if(!card.hidden&&inView.has(card))card.querySelectorAll('video').forEach(v=>{if(v.readyState>0)v.currentTime=0;});playing=true;syncPlayback();};
+ browse.onclick=()=>{browsing=!browsing;advanceAt=performance.now();browseUI();};
+ layout.onclick=()=>{expanded=!expanded;rail.classList.toggle('expanded',expanded);layout.textContent=expanded?'↔ Horizontal view':'▦ Show all';layout.setAttribute('aria-pressed',String(expanded));rail.scrollLeft=0;advanceAt=performance.now();browseUI();requestAnimationFrame(bounds);};
+ gallery.querySelectorAll('[data-motion-filter]').forEach(button=>button.onclick=()=>{filter=button.dataset.motionFilter;gallery.querySelectorAll('[data-motion-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));for(const c of items)c.hidden=filter!=='all'&&c.dataset.kind!==filter;const selected=items.filter(c=>!c.hidden),objects=new Set(selected.map(c=>c.dataset.object));document.getElementById('motion-count').textContent=objects.size+' objects · '+selected.length+' clips / paired views';rail.scrollLeft=0;advanceAt=performance.now();syncPlayback();requestAnimationFrame(bounds);});
+ document.getElementById('motion-prev').onclick=()=>move(-1);document.getElementById('motion-next').onclick=()=>move(1);
+ rail.addEventListener('scroll',()=>{advanceAt=performance.now();bounds();},{passive:true});
+ rail.addEventListener('keydown',e=>{if(e.target!==rail)return;if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();move(e.key==='ArrowRight'?1:-1);}else if(e.key==='Home'||e.key==='End'){e.preventDefault();rail.scrollTo({left:e.key==='Home'?0:rail.scrollWidth,behavior:reduced.matches?'instant':'smooth'});}});
+ rail.addEventListener('pointerenter',()=>hovered=true);rail.addEventListener('pointerleave',()=>{hovered=false;advanceAt=performance.now();});
+ rail.addEventListener('pointerdown',e=>{if(expanded||e.pointerType!=='mouse'||e.button!==0||e.target.closest('button,a'))return;drag={x:e.clientX,left:rail.scrollLeft};rail.setPointerCapture(e.pointerId);rail.classList.add('dragging');});
+ rail.addEventListener('pointermove',e=>{if(drag)rail.scrollLeft=drag.left+drag.x-e.clientX;});
+ const endDrag=()=>{drag=null;rail.classList.remove('dragging');advanceAt=performance.now();};rail.addEventListener('pointerup',endDrag);rail.addEventListener('pointercancel',endDrag);
+ setInterval(()=>{if(!browsing||expanded||document.hidden||hovered||drag||!inView.size||gallery.contains(document.activeElement))return;if(performance.now()-advanceAt>8000)move(1,true);},500);
+ document.addEventListener('visibilitychange',()=>{advanceAt=performance.now();syncPlayback();});
+ reduced.addEventListener('change',()=>{if(reduced.matches){playing=false;browsing=false;syncPlayback();browseUI();}});
+ window.addEventListener('resize',bounds,{passive:true});browseUI();syncPlayback();bounds();
+}
 // Keyboard-operable tab groups; all substantive content exists without JS.
 function wireTabs(selector,attribute){
   const tabs=[...document.querySelectorAll(selector)];
