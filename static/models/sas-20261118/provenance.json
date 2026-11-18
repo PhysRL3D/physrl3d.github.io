@@ -1,0 +1,118 @@
+[
+  {
+    "sourceSHA256": "bc30d1b83c8426df7b592322718569302eef959311894c2ab46f4402981e59c8",
+    "archiveEntries": [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "3D/3dmodel.model"
+    ],
+    "originalFaces": 1193900,
+    "displayFaces": 80000,
+    "sourceBoundsMM": [
+      [
+        -29.4479,
+        -13.15,
+        0.0
+      ],
+      [
+        29.4479,
+        13.15,
+        60.0
+      ]
+    ],
+    "bytes": 1921264,
+    "sha256": "227f874eff3cf97442e451235340edd5928eb50f83e4db6977616340cd4f7fbb",
+    "output": "kangaroo-baseline.glb",
+    "texture": "absent",
+    "supports": "absent",
+    "massBinding": "not verified",
+    "sourceFile": "kangaroo_TRELLIS2_seed20260827_60mm.3mf"
+  },
+  {
+    "sourceSHA256": "3b91d076f036f4d2dfe9de032409cec0c7c46d9a927bfca4851d4b4a25f0347c",
+    "archiveEntries": [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "3D/3dmodel.model"
+    ],
+    "originalFaces": 1511204,
+    "displayFaces": 80000,
+    "sourceBoundsMM": [
+      [
+        -18.75,
+        -18.598,
+        0.0
+      ],
+      [
+        18.75,
+        18.598,
+        60.0
+      ]
+    ],
+    "bytes": 1920276,
+    "sha256": "b9ff11ac23ef77862712fae694a0864f1eb2009334281ef87e9b939bfbf7af3c",
+    "output": "kangaroo-sas.glb",
+    "texture": "absent",
+    "supports": "absent",
+    "massBinding": "not verified",
+    "sourceFile": "kangaroo_SAS_seed20260826_60mm.3mf"
+  },
+  {
+    "sourceSHA256": "6200047c70b182f3df7bda1255acaefb7cec417aa540a338638000c5c1e45fc6",
+    "archiveEntries": [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "3D/3dmodel.model"
+    ],
+    "originalFaces": 1841652,
+    "displayFaces": 80000,
+    "sourceBoundsMM": [
+      [
+        -25.3925,
+        -12.2226,
+        0.0
+      ],
+      [
+        25.3925,
+        12.2226,
+        60.0
+      ]
+    ],
+    "bytes": 1917764,
+    "sha256": "79b50eebca7fbc9d8d30fb9411612bffe31f5489edd149b0100e4646cdbe39a7",
+    "output": "koala-baseline.glb",
+    "texture": "absent",
+    "supports": "absent",
+    "massBinding": "not verified",
+    "sourceFile": "koala_TRELLIS2_seed20260828_60mm.3mf"
+  },
+  {
+    "sourceSHA256": "00be3661ef26fe6fb8fb861348001365b4c154dc852ab7ff9b04158c2b25ef71",
+    "archiveEntries": [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "3D/3dmodel.model"
+    ],
+    "originalFaces": 1702548,
+    "displayFaces": 80000,
+    "sourceBoundsMM": [
+      [
+        -25.3937,
+        -11.2923,
+        0.0
+      ],
+      [
+        25.3937,
+        11.2923,
+        59.9999
+      ]
+    ],
+    "bytes": 1918880,
+    "sha256": "c3bf5fa6b9879515e49830e33f3505e69cab715961b4c58540b2032c81ec866c",
+    "output": "koala-sas.glb",
+    "texture": "absent",
+    "supports": "absent",
+    "massBinding": "not verified",
+    "sourceFile": "koala_SAS_seed20260826_60mm.3mf"
+  }
+]
