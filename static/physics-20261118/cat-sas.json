@@ -1,0 +1,476 @@
+{
+  "version": 1,
+  "key": "cat-sas",
+  "object": "cat",
+  "method": "SAS",
+  "coordinateSystem": "Z-up",
+  "units": "mm",
+  "orientation": "Original print pose; only original shared XY centering retained.",
+  "sourceMeshBoundsMm": [
+    [
+      -7.75,
+      -30.0,
+      0.0
+    ],
+    [
+      7.75,
+      30.0,
+      46.5
+    ]
+  ],
+  "bodyBoundsMm": [
+    [
+      -7.753575139797019,
+      -29.998843665561306,
+      -0.009808255363174137
+    ],
+    [
+      7.754131895814686,
+      30.002443207452156,
+      46.50277377928898
+    ]
+  ],
+  "supportEndpointBoundsMm": [
+    [
+      -16.394994735717773,
+      -31.003997802734375,
+      0.20000000298023224
+    ],
+    [
+      12.996332168579102,
+      31.242767333984375,
+      23.799999237060547
+    ]
+  ],
+  "body": {
+    "file": "cat-sas-body.glb",
+    "vertices": 29998,
+    "triangles": 60000,
+    "displayLOD": true,
+    "physicsGeometry": false,
+    "description": "Quadric display simplification; no independent rotation, recentering or resizing."
+  },
+  "supports": {
+    "file": "cat-sas-supports.bin",
+    "chunkIdsFile": "cat-sas-chunk-ids.bin",
+    "count": 8000,
+    "fullSegmentCount": 100358,
+    "dtype": "float32-le",
+    "stride": 8,
+    "fields": [
+      "startX",
+      "startY",
+      "startZ",
+      "endX",
+      "endY",
+      "endZ",
+      "width",
+      "layerHeight"
+    ],
+    "chunkIdType": "uint16-le",
+    "chunkIdMeaning": "Zero-based index into chunks, not source label.",
+    "crossSection": "Rectangular; XY half-width normal to path; endpoint Z is bead top, bottom is Z-layerHeight.",
+    "displayLOD": true,
+    "physicsGeometry": false,
+    "sampling": "Deterministic layer/path-stratified subsample within every original fragment; no invented support paths.",
+    "coverage": "Every original fragment represented; not every original support extrusion is drawn."
+  },
+  "chunks": [
+    {
+      "index": 0,
+      "sourceLabel": 54,
+      "centreMm": [
+        -10.472330093383789,
+        -25.62215805053711,
+        2.5
+      ],
+      "displaySegments": 110
+    },
+    {
+      "index": 1,
+      "sourceLabel": 55,
+      "centreMm": [
+        -10.036069869995117,
+        -24.52837371826172,
+        7.199999809265137
+      ],
+      "displaySegments": 50
+    },
+    {
+      "index": 2,
+      "sourceLabel": 56,
+      "centreMm": [
+        -5.861149787902832,
+        -24.169967651367188,
+        15.5
+      ],
+      "displaySegments": 233
+    },
+    {
+      "index": 3,
+      "sourceLabel": 60,
+      "centreMm": [
+        -9.125182151794434,
+        -18.215499877929688,
+        1.5
+      ],
+      "displaySegments": 162
+    },
+    {
+      "index": 4,
+      "sourceLabel": 61,
+      "centreMm": [
+        -6.580296516418457,
+        -18.584196090698242,
+        7.5
+      ],
+      "displaySegments": 460
+    },
+    {
+      "index": 5,
+      "sourceLabel": 62,
+      "centreMm": [
+        -6.142416954040527,
+        -19.99547576904297,
+        19.599998474121094
+      ],
+      "displaySegments": 29
+    },
+    {
+      "index": 6,
+      "sourceLabel": 66,
+      "centreMm": [
+        -7.237961769104004,
+        -6.753688812255859,
+        1.7999999523162842
+      ],
+      "displaySegments": 76
+    },
+    {
+      "index": 7,
+      "sourceLabel": 67,
+      "centreMm": [
+        -5.5251994132995605,
+        -5.817968845367432,
+        7.700000286102295
+      ],
+      "displaySegments": 309
+    },
+    {
+      "index": 8,
+      "sourceLabel": 73,
+      "centreMm": [
+        -6.067519187927246,
+        3.752246141433716,
+        9.600000381469727
+      ],
+      "displaySegments": 68
+    },
+    {
+      "index": 9,
+      "sourceLabel": 78,
+      "centreMm": [
+        -7.533366680145264,
+        16.288707733154297,
+        2.0999999046325684
+      ],
+      "displaySegments": 191
+    },
+    {
+      "index": 10,
+      "sourceLabel": 79,
+      "centreMm": [
+        -7.001494407653809,
+        14.448746681213379,
+        7.299999713897705
+      ],
+      "displaySegments": 238
+    },
+    {
+      "index": 11,
+      "sourceLabel": 84,
+      "centreMm": [
+        -8.333795547485352,
+        26.463869094848633,
+        1.600000023841858
+      ],
+      "displaySegments": 79
+    },
+    {
+      "index": 12,
+      "sourceLabel": 85,
+      "centreMm": [
+        -7.98781156539917,
+        24.828662872314453,
+        5.599999904632568
+      ],
+      "displaySegments": 103
+    },
+    {
+      "index": 13,
+      "sourceLabel": 86,
+      "centreMm": [
+        -1.6592333316802979,
+        23.925331115722656,
+        18.799999237060547
+      ],
+      "displaySegments": 54
+    },
+    {
+      "index": 14,
+      "sourceLabel": 102,
+      "centreMm": [
+        1.0269274711608887,
+        -26.55073356628418,
+        1.399999976158142
+      ],
+      "displaySegments": 56
+    },
+    {
+      "index": 15,
+      "sourceLabel": 103,
+      "centreMm": [
+        0.8403764963150024,
+        -26.007837295532227,
+        7.599999904632568
+      ],
+      "displaySegments": 249
+    },
+    {
+      "index": 16,
+      "sourceLabel": 104,
+      "centreMm": [
+        -0.254530668258667,
+        -26.38549041748047,
+        16.5
+      ],
+      "displaySegments": 510
+    },
+    {
+      "index": 17,
+      "sourceLabel": 108,
+      "centreMm": [
+        4.432326316833496,
+        -19.18958282470703,
+        0.8999999761581421
+      ],
+      "displaySegments": 53
+    },
+    {
+      "index": 18,
+      "sourceLabel": 109,
+      "centreMm": [
+        2.7360832691192627,
+        -18.60799217224121,
+        6.599999904632568
+      ],
+      "displaySegments": 668
+    },
+    {
+      "index": 19,
+      "sourceLabel": 110,
+      "centreMm": [
+        2.3025894165039062,
+        -21.34361457824707,
+        15.90000057220459
+      ],
+      "displaySegments": 7
+    },
+    {
+      "index": 20,
+      "sourceLabel": 114,
+      "centreMm": [
+        2.377392292022705,
+        -8.222179412841797,
+        1.7000000476837158
+      ],
+      "displaySegments": 115
+    },
+    {
+      "index": 21,
+      "sourceLabel": 115,
+      "centreMm": [
+        0.36325669288635254,
+        -8.047689437866211,
+        5.900000095367432
+      ],
+      "displaySegments": 688
+    },
+    {
+      "index": 22,
+      "sourceLabel": 120,
+      "centreMm": [
+        -2.133863687515259,
+        5.116696357727051,
+        1.0
+      ],
+      "displaySegments": 37
+    },
+    {
+      "index": 23,
+      "sourceLabel": 121,
+      "centreMm": [
+        0.4858415126800537,
+        3.0443687438964844,
+        6.300000190734863
+      ],
+      "displaySegments": 1126
+    },
+    {
+      "index": 24,
+      "sourceLabel": 126,
+      "centreMm": [
+        1.2610061168670654,
+        15.27515697479248,
+        1.0
+      ],
+      "displaySegments": 73
+    },
+    {
+      "index": 25,
+      "sourceLabel": 127,
+      "centreMm": [
+        1.0850169658660889,
+        13.98324966430664,
+        6.699999809265137
+      ],
+      "displaySegments": 811
+    },
+    {
+      "index": 26,
+      "sourceLabel": 128,
+      "centreMm": [
+        1.6301259994506836,
+        14.49729061126709,
+        17.600000381469727
+      ],
+      "displaySegments": 181
+    },
+    {
+      "index": 27,
+      "sourceLabel": 132,
+      "centreMm": [
+        1.220346450805664,
+        24.680795669555664,
+        1.7999999523162842
+      ],
+      "displaySegments": 128
+    },
+    {
+      "index": 28,
+      "sourceLabel": 133,
+      "centreMm": [
+        -1.6226723194122314,
+        24.510116577148438,
+        8.699999809265137
+      ],
+      "displaySegments": 349
+    },
+    {
+      "index": 29,
+      "sourceLabel": 134,
+      "centreMm": [
+        0.7469729781150818,
+        24.331336975097656,
+        19.700000762939453
+      ],
+      "displaySegments": 10
+    },
+    {
+      "index": 30,
+      "sourceLabel": 162,
+      "centreMm": [
+        8.874285697937012,
+        -6.887472629547119,
+        3.0999999046325684
+      ],
+      "displaySegments": 181
+    },
+    {
+      "index": 31,
+      "sourceLabel": 163,
+      "centreMm": [
+        6.963175296783447,
+        -5.771698951721191,
+        9.300000190734863
+      ],
+      "displaySegments": 54
+    },
+    {
+      "index": 32,
+      "sourceLabel": 168,
+      "centreMm": [
+        8.654342651367188,
+        5.438009262084961,
+        2.799999952316284
+      ],
+      "displaySegments": 104
+    },
+    {
+      "index": 33,
+      "sourceLabel": 169,
+      "centreMm": [
+        7.450531482696533,
+        7.966551780700684,
+        8.100000381469727
+      ],
+      "displaySegments": 93
+    },
+    {
+      "index": 34,
+      "sourceLabel": 175,
+      "centreMm": [
+        8.130155563354492,
+        14.738866806030273,
+        5.5
+      ],
+      "displaySegments": 345
+    }
+  ],
+  "motion": {
+    "file": "cat-sas-motion.bin",
+    "dtype": "float32-le",
+    "shape": [
+      35,
+      144,
+      7
+    ],
+    "layout": "chunk-major, then frame, then component",
+    "fields": [
+      "x_mm",
+      "y_mm",
+      "z_mm",
+      "eulerX_rad",
+      "eulerY_rad",
+      "eulerZ_rad",
+      "uniformScale"
+    ],
+    "eulerOrder": "XYZ",
+    "fps": 24,
+    "frameCount": 144,
+    "durationSeconds": 6,
+    "meaning": "Illustrative support breakup and cleanup only; NOT a physics simulation.",
+    "hideFromFrameOneBased": 101,
+    "localGeometry": "Subtract centreMm from each support endpoint before applying chunk motion.",
+    "eulerConvention": "Blender XYZ: column-vector matrix Rz(z) @ Ry(y) @ Rx(x).",
+    "threeEulerOrder": "ZYX",
+    "quaternionFile": "cat-sas-motion-quat.bin",
+    "quaternionShape": [
+      35,
+      144,
+      8
+    ],
+    "quaternionFields": [
+      "x_mm",
+      "y_mm",
+      "z_mm",
+      "qx",
+      "qy",
+      "qz",
+      "qw",
+      "uniformScale"
+    ],
+    "recommendedRotation": "Use quaternionFile to avoid Euler convention differences."
+  },
+  "physicsCaution": "Body and support display LODs are not physical source geometry. Chunk centres are bounds centres, not centres of mass."
+}

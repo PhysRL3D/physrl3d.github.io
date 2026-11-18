@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "models": {
+    "chair-trellis2": {
+      "body_g": 3.3437788486480713,
+      "support_g": 9.303326606750488,
+      "total_body_support_g": 12.64710545539856,
+      "percentage": 73.56091589146399,
+      "has_brim": true,
+      "estimated_not_measured": true,
+      "exclude_purge_and_prime_tower": true
+    },
+    "chair-sas": {
+      "body_g": 8.82976245880127,
+      "support_g": 6.232147216796875,
+      "total_body_support_g": 15.061909675598145,
+      "percentage": 41.37687286024295,
+      "has_brim": true,
+      "estimated_not_measured": true,
+      "exclude_purge_and_prime_tower": true
+    },
+    "cat-trellis2": {
+      "body_g": 1.9693472385406494,
+      "support_g": 5.516780853271484,
+      "total_body_support_g": 7.486128091812134,
+      "percentage": 73.69338041791457,
+      "has_brim": false,
+      "estimated_not_measured": true,
+      "exclude_purge_and_prime_tower": true
+    },
+    "cat-sas": {
+      "body_g": 5.900917053222656,
+      "support_g": 2.6068403720855713,
+      "total_body_support_g": 8.507757425308228,
+      "percentage": 30.64074634204945,
+      "has_brim": false,
+      "estimated_not_measured": true,
+      "exclude_purge_and_prime_tower": true
+    },
+    "poodle-trellis2": {
+      "body_g": 11.557727813720703,
+      "support_g": 3.386652708053589,
+      "total_body_support_g": 14.944380521774292,
+      "percentage": 22.66171356597325,
+      "has_brim": false,
+      "estimated_not_measured": true,
+      "exclude_purge_and_prime_tower": true
+    },
+    "poodle-sas": {
+      "body_g": 11.89500617980957,
+      "support_g": 2.301241159439087,
+      "total_body_support_g": 14.196247339248657,
+      "percentage": 16.210207560112018,
+      "has_brim": false,
+      "estimated_not_measured": true,
+      "exclude_purge_and_prime_tower": true
+    },
+    "xmastree-trellis2": {
+      "body_g": 11.181862831115723,
+      "support_g": 7.7256245613098145,
+      "total_body_support_g": 18.907487392425537,
+      "percentage": 40.8601333480447,
+      "has_brim": false,
+      "estimated_not_measured": true,
+      "exclude_purge_and_prime_tower": true
+    },
+    "xmastree-sas": {
+      "body_g": 7.149692535400391,
+      "support_g": 6.9136247634887695,
+      "total_body_support_g": 14.06331729888916,
+      "percentage": 49.16069670158737,
+      "has_brim": false,
+      "estimated_not_measured": true,
+      "exclude_purge_and_prime_tower": true
+    },
+    "penguin-sas": {
+      "body_g": 10.473224639892578,
+      "support_g": 1.272597312927246,
+      "total_body_support_g": 11.745821952819824,
+      "percentage": 10.834467932844266,
+      "has_brim": true,
+      "estimated_not_measured": true,
+      "exclude_purge_and_prime_tower": true
+    }
+  },
+  "notes": [
+    "These are slicer estimates, not physical weighing measurements. A sweeping/scale animation is illustrative.",
+    "Displayed total = model-channel main mass + support/interface main mass. Model-channel mass includes configured brim; purge and prime tower are excluded.",
+    "Support share (%) = 100 × support_g / total_body_support_g. It is not the support share of all printer-consumed filament.",
+    "White PLA slot 1 is the model channel; blue PLA slot 3 is support and support interface. Flush into model, infill, and support was disabled; prime towers were retained but excluded from these metrics.",
+    "Chair TRELLIS.2, chair SAS, and penguin SAS contain a small brim in the white model channel; no separate brim mass is reported in the small result metadata.",
+    "Christmas tree SAS uses less support mass than TRELLIS.2 but a higher support percentage because its total model-plus-support mass is lower.",
+    "The two poodle models retain different original print orientations; these examples are qualitative, not a matched-pose benchmark.",
+    "No invalid penguin TRELLIS.2 example is included."
+  ],
+  "field_definitions": {
+    "body_g": "Slicer main model-channel mass (white slot 1), including brim where configured; not strictly cleaned-object mass",
+    "support_g": "Slicer main support plus support-interface mass (blue slot 3)",
+    "total_body_support_g": "Sum of body_g and support_g",
+    "percentage": "100 × support_g / total_body_support_g",
+    "has_brim": "Brim feature found in both result feature_type_times and existing G-code role audit"
+  }
+}
