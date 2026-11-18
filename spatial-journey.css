@@ -1,0 +1,149 @@
+/* A continuous spatial rhythm, without replacing ordinary document scrolling. */
+:root {
+  --journey-gutter: clamp(18px, 3.6vw, 68px);
+  --journey-dock-height: 66px;
+}
+
+/* These apply before JavaScript too: everything remains visible and readable. */
+#examples, #highlights, #simulation, #method, #results, #prints {
+  scroll-margin-block: 94px 100px;
+}
+
+.spatial-journey-ready .journey-chapter {
+  transform-origin: center 35%;
+  --journey-pan: -12px;
+}
+.spatial-journey-ready .journey-chapter[data-journey-direction="right"] {
+  --journey-pan: 12px;
+}
+
+/* More of the viewport is given to media, while paragraphs retain readable widths. */
+@media (min-width: 1001px) {
+  .spatial-journey-ready :is(#examples, #highlights, #results) > .shell,
+  .spatial-journey-ready #method.shell,
+  .spatial-journey-ready main > .shell:has(> #simulation),
+  .spatial-journey-ready main > .shell:has(> #prints) {
+    width: calc(100% - var(--journey-gutter) * 2);
+    max-width: 1600px;
+  }
+  .spatial-journey-ready :is(#examples, #highlights) {
+    padding-block: clamp(46px, 7svh, 86px);
+    min-height: 88svh;
+  }
+  .spatial-journey-ready #method,
+  .spatial-journey-ready #simulation,
+  .spatial-journey-ready #results {
+    min-height: 90svh;
+    padding-block: clamp(58px, 7svh, 92px);
+  }
+  .spatial-journey-ready .motion-track:not(.expanded) {
+    grid-template-rows: repeat(2, clamp(230px, 28svh, 320px));
+    grid-auto-columns: min(470px, 34vw);
+    padding-inline: var(--journey-gutter);
+    scroll-padding-inline: var(--journey-gutter);
+  }
+  .spatial-journey-ready .highlight-track {
+    padding-inline: var(--journey-gutter);
+  }
+  .spatial-journey-ready .highlight-card {
+    flex-basis: min(1120px, 86vw);
+    height: clamp(560px, 68svh, 740px);
+  }
+  .spatial-journey-ready .highlight-card video {
+    height: clamp(335px, 43svh, 460px);
+  }
+}
+
+.journey-dock {
+  position: fixed;
+  z-index: 19;
+  inset: auto 18px max(14px, env(safe-area-inset-bottom));
+  width: max-content;
+  max-width: calc(100vw - 36px);
+  margin-left: auto;
+  display: flex;
+  gap: 3px;
+  padding: 5px;
+  border: 1px solid #ffffff48;
+  border-radius: 999px;
+  background: #202a3aed;
+  box-shadow: 0 8px 28px #1c253526;
+  backdrop-filter: blur(18px);
+  color: #e4ebf6;
+}
+.journey-dock[hidden] { display: none; }
+.journey-dock-link {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 42px;
+  min-width: 48px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  line-height: 1;
+  text-decoration: none;
+}
+.journey-dock-link:hover { background: #ffffff15; text-decoration: none; }
+.journey-dock-link[aria-current="location"] { color: #202a3a; background: #f4f2fc; }
+.journey-dock-link:focus-visible { outline: 2px solid #c7b5ff; outline-offset: 1px; }
+.spatial-journey-ready footer { padding-bottom: calc(var(--journey-dock-height) + env(safe-area-inset-bottom)); }
+
+@supports (animation-timeline: view()) and (animation-range: entry 0% entry 100%) {
+  @media (prefers-reduced-motion: no-preference) {
+    .journey-native-timeline .journey-chapter {
+      animation: journey-approach 1s cubic-bezier(.22,.68,.25,1) both;
+      animation-timeline: view(block);
+      animation-range: entry 0% entry 100%;
+    }
+  }
+}
+@keyframes journey-approach {
+  from { transform: translate3d(var(--journey-pan), 36px, 0) scale(.94); }
+  to { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* Active controls stay stationary while being operated, including keyboard focus. */
+.spatial-journey-ready .journey-chapter[data-journey-held="true"] {
+  animation: none !important;
+  transform: var(--journey-held-transform, none) !important;
+}
+
+@media (max-width: 680px) {
+  :root { --journey-gutter: 16px; --journey-dock-height: 74px; }
+  .spatial-journey-ready .journey-chapter { --journey-pan: -6px; }
+  .spatial-journey-ready .journey-chapter[data-journey-direction="right"] { --journey-pan: 6px; }
+  .spatial-journey-ready :is(#examples, #highlights) { padding-block: 34px 44px; }
+  .spatial-journey-ready #method,
+  .spatial-journey-ready #simulation,
+  .spatial-journey-ready #results { padding-block: 44px; }
+  .spatial-journey-ready .motion-track:not(.expanded) {
+    grid-template-rows: clamp(320px, 51svh, 490px);
+    grid-auto-columns: calc(100vw - 40px);
+    padding-inline: 16px;
+    scroll-padding-inline: 16px;
+  }
+  .journey-dock {
+    inset-inline: 10px;
+    margin-inline: auto;
+    max-width: calc(100vw - 20px);
+    gap: 1px;
+    padding: 4px;
+  }
+  .journey-dock-link { min-height: 44px; min-width: 42px; padding-inline: 11px; font-size: 10px; }
+}
+@media (max-width: 360px) {
+  .journey-dock-link { padding-inline: 9px; font-size: 9px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  .spatial-journey-ready .journey-chapter,
+  .spatial-journey-ready .journey-chapter[data-journey-held="true"] {
+    animation: none !important;
+    transform: none !important;
+  }
+  .journey-dock-link { transition: none !important; }
+}

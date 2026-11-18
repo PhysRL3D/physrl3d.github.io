@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {groupPositions,viewInsets,fitScene} from './spatial-layout.mjs';
 import {SWEEP_START,SWEEP_END,WEIGH_TIME,RELEASE_TIME,massSummary,sweepPose,smooth} from './support-weighing.mjs';
 
 const ROOT='static/physics-20261118/';
@@ -26,7 +27,10 @@ async function initialise(){
  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
  renderer.setClearColor('#172330');stage.prepend(renderer.domElement);
  const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.09;
- controls.enablePan=true;controls.minDistance=80;controls.maxDistance=2500;controls.maxPolarAngle=Math.PI*.49;
+ controls.enablePan=true;controls.enableZoom=false;controls.minDistance=80;controls.maxDistance=6000;controls.maxPolarAngle=Math.PI*.49;
+ // Preserve ordinary page scrolling in the immersive main view. Zoom buttons
+ // remain available; the expanded inspector enables pinch/wheel controls.
+ renderer.domElement.style.touchAction='pan-y';
  scene.add(new THREE.HemisphereLight(0xe7f0ff,0x26374b,1.6));
  const key=new THREE.DirectionalLight(0xffffff,1.8);key.position.set(-300,-500,900);scene.add(key);
  const fill=new THREE.DirectionalLight(0x9dcaff,.8);fill.position.set(500,400,500);scene.add(fill);
@@ -34,14 +38,16 @@ async function initialise(){
  const bodyMaterial=new THREE.MeshStandardMaterial({color:0xf2ece2,roughness:.72,metalness:0});
  const supportMaterial=new THREE.MeshStandardMaterial({color:0x258bdf,roughness:.5,metalness:.08});
  const supportCube=new THREE.BoxGeometry(1,1,1),loader=new GLTFLoader();
- const groups=[],bodies=[];let selected='chair',ready=false,simulationReady=false,time=0,playing=false,inView=false,contextLost=false,duration=RELEASE;
+ const groups=[],bodies=[];let selected=null,ready=false,simulationReady=false,time=0,playing=false,inView=false,contextLost=false,duration=RELEASE;
  const physicsEnabled=host.dataset.physicsEnabled==='true';
- let cameraGoal=null,targetGoal=null,last=performance.now(),frame=0,renderedTime=-1;
+ let cameraGoal=null,targetGoal=null,viewGoal=null,last=performance.now(),frame=0,renderedTime=-1;
+ let labelSafeArea={left:12,right:12,top:120,bottom:176};
  const labels=host.querySelector('.physics-labels'),picker=host.querySelector('.physics-picker');
  const temp=new THREE.Object3D(),p=new THREE.Vector3(),qa=new THREE.Quaternion(),qb=new THREE.Quaternion();
  const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
  const dialog=document.querySelector('#physics-dialog');let placeholder=null,returnFocus=null,inputAnimation=null;
- motionPreference.addEventListener('change',event=>{reduced=event.matches;if(reduced){playing=false;inputAnimation?.cancel();if(cameraGoal){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;controls.update();}updateUI();schedule();}});
+ const settleView=()=>{if(viewGoal){camera.setViewOffset(stage.clientWidth,stage.clientHeight,viewGoal.x,viewGoal.y,stage.clientWidth,stage.clientHeight);viewGoal=null;}};
+ motionPreference.addEventListener('change',event=>{reduced=event.matches;if(reduced){playing=false;inputAnimation?.cancel();if(cameraGoal){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;controls.update();}settleView();updateUI();schedule();}});
 
  function fit(id=null,instant=false){
    selected=id;const group=groups.find(g=>g.id===id);
@@ -54,23 +60,30 @@ async function initialise(){
    input.querySelector('[data-pair-explanation]').textContent=!group?'Select a numbered pair to inspect the input and both methods.':id==='penguin'?'One input → SAS output. Baseline is being rechecked.':'One input → two methods. Rotate and compare the matched outputs.';
    input.querySelector('.pair-input-image').hidden=!group;
    host.querySelector('[data-physics-overview]').setAttribute('aria-pressed',String(!id));
-   for(const g of groups){g.root.visible=!id||g.id===id;g.label.hidden=!!id&&g.id!==id;g.button.setAttribute('aria-pressed',String(g.id===id));}
-   const width=stage.clientWidth,height=stage.clientHeight,aspect=width/Math.max(1,height);
-   const target=group?new THREE.Vector3(group.x,group.y-20,20):new THREE.Vector3(0,-20,10);
-   const horizontal=group?285:990,vertical=group?205:590;
-   const distance=Math.max(horizontal/(Math.tan(THREE.MathUtils.degToRad(18.5))*aspect*2),vertical/(Math.tan(THREE.MathUtils.degToRad(18.5))*2))*1.15;
-   const dir=new THREE.Vector3(.08,-1,.72).normalize();
-   cameraGoal=target.clone().addScaledVector(dir,distance);targetGoal=target;
-   if(instant||reduced){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;controls.update();}
+   for(const g of groups){g.root.visible=true;g.label.hidden=!!id;g.button.setAttribute('aria-pressed',String(g.id===id));}
+   const width=stage.clientWidth,height=stage.clientHeight;
+   const centres=(group?[group]:groups).map(g=>[g.x,g.y]);
+   if(!centres.length||!width||!height)return;
+   const insets=viewInsets(width,height,Boolean(group),dialog.open),rect=stage.getBoundingClientRect();
+   const dock=host.querySelector('.spatial-controls').getBoundingClientRect();
+   insets.bottom=Math.max(insets.bottom,rect.bottom-dock.top+10);
+   const title=(group&&width<=680?input:host.querySelector('.physics-intro')).getBoundingClientRect();
+   insets.top=Math.max(insets.top,title.bottom-rect.top+12);
+   if(group&&width>680)insets.left=Math.max(insets.left,input.getBoundingClientRect().right-rect.left+16);
+   labelSafeArea=insets;
+   const fitted=fitScene(centres,width,height,insets);
+   viewGoal={x:fitted.offsetX,y:fitted.offsetY};
+   cameraGoal=new THREE.Vector3(...fitted.position);targetGoal=new THREE.Vector3(...fitted.target);
+   if(instant||reduced){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;settleView();controls.update();}
    else if(input.animate){inputAnimation?.cancel();inputAnimation=input.animate([{opacity:.55,transform:'translateY(8px)'},{opacity:1,transform:'translateY(0)'}],{duration:550,easing:'cubic-bezier(.2,.8,.2,1)'});}
  }
- function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
- const ro=new ResizeObserver(()=>{const previousAspect=camera.aspect;resize();if(!ready)fit(selected,true);else if(Math.abs(camera.aspect-previousAspect)>.01)fit(selected,true);});ro.observe(stage);
+ function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();const positions=groupPositions(w,h);groups.forEach((g,i)=>{[g.x,g.y]=positions[i];g.root.position.set(g.x,g.y,0);});}
+ const ro=new ResizeObserver(()=>{resize();fit(selected,true);schedule();});ro.observe(stage);
  const io=new IntersectionObserver(entries=>{inView=entries[0].isIntersecting;last=performance.now();schedule();},{rootMargin:'80px'});io.observe(stage);
  document.addEventListener('visibilitychange',()=>{last=performance.now();schedule();});
  renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();contextLost=true;playing=false;loading.hidden=false;loading.textContent='3D paused: graphics resources were released. Reload to resume.';updateUI();});
  renderer.domElement.addEventListener('webglcontextrestored',()=>location.reload());
- controls.addEventListener('start',()=>{cameraGoal=targetGoal=null;});
+ controls.addEventListener('start',()=>{cameraGoal=targetGoal=viewGoal=null;});
 
  for(let i=0;i<examples.length;i++){
    const [id,name]=examples[i],x=(i%3-1)*330+(i>2?165:0),y=(Math.floor(i/3)-.5)*285;
@@ -174,19 +187,21 @@ async function initialise(){
    const w=stage.clientWidth,h=stage.clientHeight;
    function place(label,point,visible){p.copy(point).project(camera);label.hidden=!visible||p.z>1||p.z< -1||Math.abs(p.x)>1.2||Math.abs(p.y)>1.2;label.style.left=`${(p.x*.5+.5)*w}px`;label.style.top=`${(-p.y*.5+.5)*h}px`;}
    for(const g of groups)place(g.label,new THREE.Vector3(g.x,g.y+112,24),g.root.visible&&!selected);
-   for(const e of bodies){e.leader.hidden=e.weightLeader.hidden=true;place(e.label,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-41,10),e.g.root.visible);place(e.weightLabel,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-105,8),e.g.root.visible&&Boolean(selected));}
+   for(const e of bodies){e.leader.hidden=e.weightLeader.hidden=true;const focused=e.g.id===selected;place(e.label,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-41,10),!selected||focused);place(e.weightLabel,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-105,8),focused);}
    // Keep labels readable at oblique angles and extreme zoom. Short leader lines
    // preserve the connection to each original projected model or scale position.
    if(selected){
      const placed=[];
-     const visible=bodies.filter(e=>e.g.root.visible);
+     const visible=bodies.filter(e=>e.g.id===selected);
      const items=visible.map(e=>[e.label,e.leader]).concat(visible.map(e=>[e.weightLabel,e.weightLeader]));
      for(const [label,line] of items){
        if(label.hidden)continue;
        const ax=parseFloat(label.style.left),ay=parseFloat(label.style.top),lw=label.offsetWidth,lh=label.offsetHeight;
-       const x=clamp(ax,lw/2+6,w-lw/2-6);let y=clamp(ay,lh/2+8,h-lh/2-8);
+       const minX=labelSafeArea.left+lw/2+4,maxX=Math.max(minX,w-labelSafeArea.right-lw/2-4);
+       const minY=labelSafeArea.top+lh/2+4,maxY=Math.max(minY,h-labelSafeArea.bottom-lh/2-4);
+       const x=clamp(ax,minX,maxX);let y=clamp(ay,minY,maxY);
        const offsets=[0,-42,42,-84,84,-126,126,-168,168,-210,210];
-       for(const delta of offsets){const cy=clamp(ay+delta,lh/2+8,h-lh/2-8);if(!placed.some(r=>Math.abs(x-r.x)<(lw+r.w)/2+5&&Math.abs(cy-r.y)<(lh+r.h)/2+5)){y=cy;break;}}
+       for(const delta of offsets){const cy=clamp(ay+delta,minY,maxY);if(!placed.some(r=>Math.abs(x-r.x)<(lw+r.w)/2+5&&Math.abs(cy-r.y)<(lh+r.h)/2+5)){y=cy;break;}}
        label.style.left=`${x}px`;label.style.top=`${y}px`;placed.push({x,y,w:lw,h:lh});
        const dx=x-ax,dy=y-ay,length=Math.hypot(dx,dy);
        if(length>12){line.hidden=false;line.style.left=`${ax}px`;line.style.top=`${ay}px`;line.style.width=`${length}px`;line.style.transform=`rotate(${Math.atan2(dy,dx)}rad)`;}
@@ -196,7 +211,7 @@ async function initialise(){
  function tick(now){
    frame=0;if(!active())return;if(now-last<30){schedule();return;}const dt=Math.min(.1,(now-last)/1000);last=now;
    if(playing&&ready){time=Math.min(duration,time+dt);if(time>=duration)playing=false;}
-   if(cameraGoal){const ease=1-Math.exp(-7*dt);camera.position.lerp(cameraGoal,ease);controls.target.lerp(targetGoal,ease);if(camera.position.distanceTo(cameraGoal)<.15){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;}}
+   if(cameraGoal){const ease=1-Math.exp(-5*dt);camera.position.lerp(cameraGoal,ease);controls.target.lerp(targetGoal,ease);if(viewGoal){const v=camera.view||{offsetX:0,offsetY:0};camera.setViewOffset(stage.clientWidth,stage.clientHeight,THREE.MathUtils.lerp(v.offsetX,viewGoal.x,ease),THREE.MathUtils.lerp(v.offsetY,viewGoal.y,ease),stage.clientWidth,stage.clientHeight);}if(camera.position.distanceTo(cameraGoal)<.15){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;settleView();}}
    if(time!==renderedTime){for(const e of bodies)applyBody(e,time);renderedTime=time;updateUI();}controls.update();projectLabels();renderer.render(scene,camera);schedule();
  }
  function active(){return (inView||dialog.open)&&!document.hidden&&!contextLost;}
@@ -211,9 +226,9 @@ async function initialise(){
  stage.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='r'){e.preventDefault();fit(selected);}if(e.key===' '){e.preventDefault();if(ready)play.click();}});
  let down=null;renderer.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
  renderer.domElement.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(bodies.filter(b=>b.g.root.visible).map(b=>b.body),true);if(hits[0]?.object.userData.example)fit(hits[0].object.userData.example);});
- host.querySelector('[data-physics-expand]').addEventListener('click',e=>{if(dialog.open){dialog.close();return;}returnFocus=e.currentTarget;placeholder=document.createComment('physics viewer');host.replaceWith(placeholder);dialog.querySelector('.physics-dialog-content').append(host);dialog.showModal();resize();fit(selected,true);schedule();});
+ host.querySelector('[data-physics-expand]').addEventListener('click',e=>{if(dialog.open){dialog.close();return;}returnFocus=e.currentTarget;placeholder=document.createComment('physics viewer');host.replaceWith(placeholder);dialog.querySelector('.physics-dialog-content').append(host);dialog.showModal();controls.enableZoom=true;renderer.domElement.style.touchAction='none';resize();fit(selected,true);schedule();});
  document.querySelector('[data-physics-close]').addEventListener('click',()=>dialog.close());
- dialog.addEventListener('close',()=>{if(placeholder){placeholder.replaceWith(host);placeholder=null;resize();fit(selected,true);returnFocus?.focus();}schedule();});
+ dialog.addEventListener('close',()=>{controls.enableZoom=false;renderer.domElement.style.touchAction='pan-y';if(placeholder){placeholder.replaceWith(host);placeholder=null;resize();fit(selected,true);returnFocus?.focus();}schedule();});
  dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
 
  let count=0;
