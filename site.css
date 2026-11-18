@@ -13,6 +13,34 @@
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
 /* Keep standalone narrative sections aligned with the hero and results shell. */
 section.shell{margin-inline:auto}
+/* Real camera zoom, plus an enlarged dialog using the very same canvas. */
+.viewer-actions{display:flex;align-items:center;gap:8px;margin-top:12px}
+.viewer-actions [data-zoom]{width:39px;height:39px;padding:0;font-size:23px;line-height:1}
+.viewer-zoom{min-width:48px;text-align:center;font-size:12px;font-variant-numeric:tabular-nums;color:#655c6d}
+.viewer-expand{margin-left:auto;font-size:11px}.viewer-stage:focus-visible{outline-offset:2px}
+#mesh-dialog{width:min(1160px,96vw);max-width:none;height:min(960px,94dvh);max-height:94dvh;margin:auto;border:1px solid var(--line);border-radius:24px;padding:0;background:#f9f6f1;color:var(--ink);overflow:auto;box-shadow:0 25px 90px #20152640}
+#mesh-dialog::backdrop{background:#28203088;backdrop-filter:blur(6px)}
+.mesh-dialog-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid var(--line);font-size:12px}
+.mesh-dialog-open{overflow:hidden}.mesh-viewer.in-dialog{border:0;padding:16px 24px 22px;border-radius:0}
+.mesh-viewer.in-dialog h3{font-size:19px;margin-bottom:8px}.in-dialog .viewer-stage{aspect-ratio:auto;height:calc(94dvh - 245px);max-height:700px;min-height:180px}
+.in-dialog .viewer-toolbar{margin-top:8px}.in-dialog .viewer-actions{margin-top:7px}.in-dialog .viewer-help{margin-top:8px}
+/* Evidence grouped by physical example, with one-group and all-groups views. */
+.print-browser-tools{display:flex;align-items:center;justify-content:space-between;gap:24px;margin:30px 0 17px}
+.print-browser-tools p{font-weight:600;font-size:17px;line-height:1.7;margin:0}.print-browser-tools p span{font-weight:400;font-size:12px;color:var(--muted)}
+.print-browser-tools button{flex-shrink:0}.print-case-picker{display:flex;gap:12px;overflow-x:auto;padding:3px 3px 12px;scroll-snap-type:x proximity}
+.print-case-picker button{flex:1;min-width:220px;display:flex;align-items:center;gap:12px;text-align:left;border-radius:18px;padding:12px;background:#faf8f5;scroll-snap-align:start}
+.print-case-picker button[aria-pressed=true]{background:#eee5f5;border-color:#a68abd;box-shadow:0 0 0 1px #a68abd}
+.print-case-picker img{width:66px;height:66px;object-fit:cover;border-radius:11px}.print-case-picker b{display:block;font-size:15px}.print-case-picker small{display:block;font-size:9px;line-height:1.5;color:#706478;margin-top:5px}.print-case-number{margin-left:auto;color:#a390b1;font-size:11px}
+#print-group-status{margin:0 0 18px}.print-cases{display:grid;gap:30px}.print-case{min-width:0;padding:28px;border-radius:25px;border:1px solid #e7e0e8;background:#fcfaf7;scroll-margin-top:110px}
+.print-case>.eyebrow{margin-bottom:14px}.print-case h3{font-size:clamp(23px,2.5vw,32px);line-height:1.2;margin-bottom:22px;max-width:850px}
+.print-case .input{padding-bottom:5px}.print-case .input p{font-size:13px;max-width:800px}.print-case .method{font-size:13px;margin-bottom:12px}
+.print-case .state{display:flex;flex-direction:column;background:white;border-radius:13px;overflow:hidden}.print-case .state img{aspect-ratio:1.16;object-fit:contain;border-radius:0}.print-case .tag{position:static;display:block;background:white;padding:7px 10px;font-size:10px;color:#66586d;border-radius:0}
+.print-case .badge{font-size:10px}.print-main-video{max-width:840px;margin:25px auto 0}.print-main-video video{max-height:430px;object-fit:contain;background:#eee8df}
+.print-extra{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}.print-extra summary{cursor:pointer;font-size:12px;color:#685775}
+.print-case figcaption{font-size:11px;color:#786a82}.print-case .clips-pp{max-width:760px}.print-case .clips-pp video{height:340px;object-fit:contain;background:#eee8df}
+.print-measurements{margin-top:28px}.print-measurements h4{font-size:14px;margin:0 0 12px}.print-case .table-scroll{background:#fff}#prints .print-case table{min-width:650px}
+#prints>.small-note{margin-top:22px}
+@media(max-width:680px){.viewer-actions{gap:6px}.viewer-actions [data-zoom]{width:42px;height:42px}.viewer-expand{padding:10px 12px}.mesh-viewer.in-dialog{padding:12px}.mesh-dialog-bar{padding:10px 12px}.in-dialog .viewer-stage{height:calc(94dvh - 270px)}.in-dialog .viewer-help{font-size:9px}.print-browser-tools{align-items:flex-start;gap:10px}.print-browser-tools p{font-size:15px}.print-browser-tools p span{font-size:10px;display:block}.print-browser-tools button{font-size:10px;padding:8px 11px}.print-case-picker button{min-width:245px;flex:0 0 82%}.print-case{padding:17px;border-radius:19px}.print-case .input{align-items:flex-start}.print-case .input p{font-size:11px}.print-case .pair{gap:12px}.print-case .method{font-size:11px}.print-case .badge{font-size:8px}.print-case .tag{font-size:9px;padding:6px}.print-case .clips-pp video{height:250px}.print-case figcaption{font-size:9px}.print-case>.eyebrow{font-size:8px}}
 /* Media-first entry: every published clip, grouped without inventing extra objects. */
 .motion-gallery{padding:25px 0 30px;overflow:hidden;border-bottom:1px solid var(--line)}
 .motion-intro{display:flex;justify-content:space-between;align-items:center;gap:24px;margin-bottom:18px}

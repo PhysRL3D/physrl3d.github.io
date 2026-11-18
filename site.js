@@ -49,6 +49,23 @@ function wireTabs(selector,attribute){
   tabs.forEach((tab,i)=>{tab.onclick=()=>select(tab);tab.onkeydown=e=>{let j=i;if(e.key==='ArrowRight')j=(i+1)%tabs.length;else if(e.key==='ArrowLeft')j=(i+tabs.length-1)%tabs.length;else if(e.key==='Home')j=0;else if(e.key==='End')j=tabs.length-1;else return;e.preventDefault();select(tabs[j],true);};});
 }
 wireTabs('[data-step]');wireTabs('[data-dataset]');
+// Keep each physical example's input, photos, footage and measurements together.
+{
+ const panels=[...document.querySelectorAll('[data-print-case]')];
+ const buttons=[...document.querySelectorAll('[data-print-select]')];
+ const allButton=document.getElementById('prints-show-all');
+ let selected='kangaroo',showAll=false;
+ function displayGroups(){
+  panels.forEach(panel=>{panel.hidden=!showAll&&panel.dataset.printCase!==selected;if(panel.hidden)panel.querySelectorAll('video').forEach(video=>video.pause());});
+  buttons.forEach(button=>button.setAttribute('aria-pressed',String(!showAll&&button.dataset.printSelect===selected)));
+  allButton.setAttribute('aria-pressed',String(showAll));allButton.textContent=showAll?'One group at a time':'Show all groups';
+  const index=panels.findIndex(panel=>panel.dataset.printCase===selected);
+  document.getElementById('print-group-status').textContent=showAll?'All 3 example groups':buttons[index].querySelector('b').textContent+' · group '+(index+1)+' of 3';
+ }
+ buttons.forEach(button=>button.addEventListener('click',()=>{selected=button.dataset.printSelect;showAll=false;displayGroups();}));
+ allButton.addEventListener('click',()=>{showAll=!showAll;displayGroups();});
+ displayGroups();
+}
 const menu=document.querySelector('.explore-menu');
 menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>menu.open=false));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')menu.open=false;});
