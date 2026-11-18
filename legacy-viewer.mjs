@@ -179,6 +179,9 @@ function createViewer(host) {
         if (host.dataset.upAxis === 'z') display.rotation.x = -Math.PI / 2;
         gltf.scene.traverse(child => {
           if (!child.isMesh) return;
+          // The public compact exports have POSITION and COLOR_0, but no NORMAL.
+          // A new lit material needs normals; without them it renders as a silhouette.
+          if (!child.geometry.getAttribute('normal')) child.geometry.computeVertexNormals();
           const old = Array.isArray(child.material) ? child.material : [child.material];
           old.forEach(m => m?.dispose());
           child.material = new THREE.MeshStandardMaterial({ color: colours[kind], roughness: 0.72, metalness: 0.02 });
