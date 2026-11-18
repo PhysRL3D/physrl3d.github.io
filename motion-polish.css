@@ -1,0 +1,98 @@
+/* Additive motion layer. No content is hidden here, even without JavaScript. */
+:root {
+  --motion-ease: cubic-bezier(.2, .75, .25, 1);
+  --motion-quick: 230ms;
+}
+
+.motion-page-progress {
+  position: fixed;
+  z-index: 200;
+  inset: 0 0 auto;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, #7971c9, #4388e9 72%, #4bb6c3);
+  transform: scaleX(0);
+  transform-origin: left center;
+  opacity: .85;
+}
+
+/* Individual scale preserves any existing transform used for positioning. */
+@media (prefers-reduced-motion: no-preference) {
+  .motion-ready :where(button, a.button, a.nav-button, summary) {
+    transition: scale var(--motion-quick) var(--motion-ease),
+      background-color var(--motion-quick) ease,
+      border-color var(--motion-quick) ease,
+      box-shadow var(--motion-quick) ease;
+  }
+
+  .motion-ready :where(button:not(:disabled), a.button, a.nav-button, summary):active {
+    scale: .975;
+  }
+
+  .motion-ready :where(.physics-picker, .inspection-track, .print-case-picker) button img,
+  .motion-ready [data-motion-input] img {
+    transition: scale 440ms var(--motion-ease), opacity 300ms ease;
+    transform-origin: center;
+  }
+
+  .motion-ready :where(.physics-picker, .inspection-track, .print-case-picker)
+    button:is([aria-pressed="true"], [aria-selected="true"]) img {
+    scale: 1.04;
+  }
+
+  .motion-ready :where(.motion-card, .highlight-card) {
+    transition: box-shadow 420ms var(--motion-ease), border-color 300ms ease;
+  }
+
+  /* These elements contain text/images only, not a WebGL surface. */
+  .motion-ready :where(.method-stage > article, .print-case):not([hidden]) {
+    animation: motion-panel-in 440ms var(--motion-ease) both;
+  }
+
+  .motion-ready dialog[open] > :first-child {
+    animation: motion-dialog-heading-in 300ms var(--motion-ease) both;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .motion-ready :where(button:not(:disabled), a.button, a.nav-button, summary):hover {
+    scale: 1.025;
+  }
+
+  .motion-ready :where(button:not(:disabled), a.button, a.nav-button, summary):active {
+    scale: .975;
+  }
+
+  .motion-ready :where(.physics-picker, .inspection-track, .print-case-picker) button:hover img,
+  .motion-ready [data-motion-input]:hover img {
+    scale: 1.065;
+  }
+
+  .motion-ready :where(.motion-card, .highlight-card):hover {
+    box-shadow: 0 15px 35px -24px #29223c55;
+  }
+}
+
+@keyframes motion-panel-in {
+  from { opacity: .45; translate: 0 8px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes motion-dialog-heading-in {
+  from { opacity: .35; translate: 0 -5px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+/* Preference changes take effect immediately, not only after a page reload. */
+@media (prefers-reduced-motion: reduce) {
+  .motion-page-progress { display: none; }
+  .motion-ready :where(button, a.button, a.nav-button, summary),
+  .motion-ready :where(.physics-picker, .inspection-track, .print-case-picker) button img,
+  .motion-ready [data-motion-input] img,
+  .motion-ready :where(.motion-card, .highlight-card, .method-stage > article, .print-case),
+  .motion-ready dialog[open] > :first-child {
+    transition: none !important;
+    animation: none !important;
+    scale: 1 !important;
+  }
+}

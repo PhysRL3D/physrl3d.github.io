@@ -12,49 +12,60 @@ const stage=host.querySelector('.physics-stage'),loading=host.querySelector('.ph
 const play=host.querySelector('[data-physics-play]'),replay=host.querySelector('[data-physics-replay]');
 const slider=host.querySelector('[data-physics-timeline]'),clock=host.querySelector('[data-physics-clock]');
 const phase=host.querySelector('[data-physics-phase]'),positionLabel=host.querySelector('[data-physics-position]');
-const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const motionPreference=matchMedia('(prefers-reduced-motion: reduce)');
+let reduced=motionPreference.matches;
 const json=async url=>{const r=await fetch(url);if(!r.ok)throw Error(`${r.status}: ${url}`);return r.json()};
 const bin=async url=>{const r=await fetch(url);if(!r.ok)throw Error(`${r.status}: ${url}`);return r.arrayBuffer()};
 
 async function initialise(){
  const weightData=await json(ROOT+'support-weights.json');
- const scene=new THREE.Scene();scene.background=new THREE.Color('#faf8f4');
+ const scene=new THREE.Scene();scene.background=new THREE.Color('#172330');
  const camera=new THREE.PerspectiveCamera(37,1,.5,10000);camera.up.set(0,0,1);
  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'low-power'});
  renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
- renderer.setClearColor('#faf8f4');stage.prepend(renderer.domElement);
+ renderer.setClearColor('#172330');stage.prepend(renderer.domElement);
  const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.09;
  controls.enablePan=true;controls.minDistance=80;controls.maxDistance=2500;controls.maxPolarAngle=Math.PI*.49;
- scene.add(new THREE.HemisphereLight(0xffffff,0x817788,1.0));
+ scene.add(new THREE.HemisphereLight(0xe7f0ff,0x26374b,1.6));
  const key=new THREE.DirectionalLight(0xffffff,1.8);key.position.set(-300,-500,900);scene.add(key);
- const fill=new THREE.DirectionalLight(0xe2ddff,.45);fill.position.set(500,400,500);scene.add(fill);
- const floor=new THREE.Mesh(new THREE.PlaneGeometry(2400,1600),new THREE.MeshStandardMaterial({color:0xf3efe9,roughness:1}));floor.position.z=-.08;scene.add(floor);
- const bodyMaterial=new THREE.MeshStandardMaterial({color:0xe8e3dc,roughness:.8,metalness:0});
- const supportMaterial=new THREE.MeshStandardMaterial({color:0x4d93dd,roughness:.65,metalness:0});
+ const fill=new THREE.DirectionalLight(0x9dcaff,.8);fill.position.set(500,400,500);scene.add(fill);
+ const floor=new THREE.Mesh(new THREE.PlaneGeometry(4000,3000),new THREE.MeshStandardMaterial({color:0x152330,roughness:1}));floor.position.z=-5;scene.add(floor);
+ const bodyMaterial=new THREE.MeshStandardMaterial({color:0xf2ece2,roughness:.72,metalness:0});
+ const supportMaterial=new THREE.MeshStandardMaterial({color:0x258bdf,roughness:.5,metalness:.08});
  const supportCube=new THREE.BoxGeometry(1,1,1),loader=new GLTFLoader();
- const groups=[],bodies=[];let selected=null,ready=false,simulationReady=false,time=0,playing=false,inView=false,contextLost=false,duration=RELEASE;
+ const groups=[],bodies=[];let selected='chair',ready=false,simulationReady=false,time=0,playing=false,inView=false,contextLost=false,duration=RELEASE;
  const physicsEnabled=host.dataset.physicsEnabled==='true';
  let cameraGoal=null,targetGoal=null,last=performance.now(),frame=0,renderedTime=-1;
  const labels=host.querySelector('.physics-labels'),picker=host.querySelector('.physics-picker');
  const temp=new THREE.Object3D(),p=new THREE.Vector3(),qa=new THREE.Quaternion(),qb=new THREE.Quaternion();
  const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
- const dialog=document.querySelector('#physics-dialog');let placeholder=null,returnFocus=null;
+ const dialog=document.querySelector('#physics-dialog');let placeholder=null,returnFocus=null,inputAnimation=null;
+ motionPreference.addEventListener('change',event=>{reduced=event.matches;if(reduced){playing=false;inputAnimation?.cancel();if(cameraGoal){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;controls.update();}updateUI();schedule();}});
 
  function fit(id=null,instant=false){
    selected=id;const group=groups.find(g=>g.id===id);
    host.dataset.focus=id||'all';updateMassDetail();
+   const input=host.querySelector('.pair-input');
+   input.querySelector('img').src=`static/support-shatter-20261118/${id||'chair'}-input.jpg`;
+   input.querySelector('img').alt=group?`${group.name}: conditioning image`:'Select an example to see its conditioning image';
+   input.querySelector('h3').textContent=group?group.name:'Five examples';
+   input.querySelector('[data-pair-number]').textContent=group?`${String(examples.findIndex(e=>e[0]===id)+1).padStart(2,'0')} / 05`:'OVERVIEW';
+   input.querySelector('[data-pair-explanation]').textContent=!group?'Select a numbered pair to inspect the input and both methods.':id==='penguin'?'One input → SAS output. Baseline is being rechecked.':'One input → two methods. Rotate and compare the matched outputs.';
+   input.querySelector('.pair-input-image').hidden=!group;
+   host.querySelector('[data-physics-overview]').setAttribute('aria-pressed',String(!id));
    for(const g of groups){g.root.visible=!id||g.id===id;g.label.hidden=!!id&&g.id!==id;g.button.setAttribute('aria-pressed',String(g.id===id));}
    const width=stage.clientWidth,height=stage.clientHeight,aspect=width/Math.max(1,height);
-   const target=group?new THREE.Vector3(group.x,group.y-25,12):new THREE.Vector3(0,-20,10);
-   const horizontal=group?255:850,vertical=group?200:450;
+   const target=group?new THREE.Vector3(group.x,group.y-20,20):new THREE.Vector3(0,-20,10);
+   const horizontal=group?285:990,vertical=group?205:590;
    const distance=Math.max(horizontal/(Math.tan(THREE.MathUtils.degToRad(18.5))*aspect*2),vertical/(Math.tan(THREE.MathUtils.degToRad(18.5))*2))*1.15;
-   const dir=new THREE.Vector3(.27,-1,.79).normalize();
+   const dir=new THREE.Vector3(.08,-1,.72).normalize();
    cameraGoal=target.clone().addScaledVector(dir,distance);targetGoal=target;
-   if(instant){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;controls.update();}
+   if(instant||reduced){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;controls.update();}
+   else if(input.animate){inputAnimation?.cancel();inputAnimation=input.animate([{opacity:.55,transform:'translateY(8px)'},{opacity:1,transform:'translateY(0)'}],{duration:550,easing:'cubic-bezier(.2,.8,.2,1)'});}
  }
  function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
- const ro=new ResizeObserver(()=>{const previousAspect=camera.aspect;resize();if(!ready)fit(null,true);else if(Math.abs(camera.aspect-previousAspect)>.01)fit(selected,true);});ro.observe(stage);
+ const ro=new ResizeObserver(()=>{const previousAspect=camera.aspect;resize();if(!ready)fit(selected,true);else if(Math.abs(camera.aspect-previousAspect)>.01)fit(selected,true);});ro.observe(stage);
  const io=new IntersectionObserver(entries=>{inView=entries[0].isIntersecting;last=performance.now();schedule();},{rootMargin:'80px'});io.observe(stage);
  document.addEventListener('visibilitychange',()=>{last=performance.now();schedule();});
  renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();contextLost=true;playing=false;loading.hidden=false;loading.textContent='3D paused: graphics resources were released. Reload to resume.';updateUI();});
@@ -62,14 +73,16 @@ async function initialise(){
  controls.addEventListener('start',()=>{cameraGoal=targetGoal=null;});
 
  for(let i=0;i<examples.length;i++){
-   const [id,name]=examples[i],x=(i%3-1)*285,y=(Math.floor(i/3)-.5)*225;
+   const [id,name]=examples[i],x=(i%3-1)*330+(i>2?165:0),y=(Math.floor(i/3)-.5)*285;
    const root=new THREE.Group();root.position.set(x,y,0);scene.add(root);
-   const pad=new THREE.Mesh(new THREE.BoxGeometry(260,195,.8),new THREE.MeshStandardMaterial({color:i%2?0xece5f0:0xeee8e2,roughness:1}));pad.position.set(0,0,-.6);root.add(pad);
-   const label=document.createElement('button');label.type='button';label.className='physics-pair-label';label.innerHTML=`${name}<span>${id==='penguin'?'SAS only':'TRELLIS.2 + SAS'} · click to inspect</span>`;label.setAttribute('aria-label',`Focus ${name}`);labels.append(label);label.addEventListener('click',()=>fit(id));
-   const button=document.createElement('button');button.type='button';button.setAttribute('aria-pressed','false');button.innerHTML=`<img src="static/support-shatter-20261118/${id}-input.jpg" alt=""><span><b>${name}</b><small>${id==='penguin'?'SAS only':'Paired view'} ↗</small></span>`;picker.append(button);button.addEventListener('click',()=>fit(id));
+   const pad=new THREE.Mesh(new THREE.BoxGeometry(296,224,4),new THREE.MeshStandardMaterial({color:0x273c4e,roughness:.85}));pad.position.set(0,-2,-2.1);root.add(pad);
+   const edge=new THREE.LineSegments(new THREE.EdgesGeometry(pad.geometry),new THREE.LineBasicMaterial({color:0x597184,transparent:true,opacity:.7}));edge.position.copy(pad.position);root.add(edge);
+   if(id!=='penguin'){const divider=new THREE.Mesh(new THREE.BoxGeometry(.7,210,.15),new THREE.MeshBasicMaterial({color:0x526b7c}));divider.position.set(0,-2,.03);root.add(divider);}
+   const label=document.createElement('button');label.type='button';label.className='physics-pair-label';label.innerHTML=`<img src="static/support-shatter-20261118/${id}-input.jpg" alt=""><span><b>${String(i+1).padStart(2,'0')} · ${name}</b><small>${id==='penguin'?'SAS only':'TRELLIS.2 / PhysRL3D'} ↗</small></span>`;label.setAttribute('aria-label',`Focus ${name}`);labels.append(label);label.addEventListener('click',()=>fit(id));
+   const button=document.createElement('button');button.type='button';button.setAttribute('aria-pressed','false');button.setAttribute('aria-label',`Compare ${name}`);button.innerHTML=`<span class="picker-number">${String(i+1).padStart(2,'0')}</span><img src="static/support-shatter-20261118/${id}-input.jpg" alt=""><span><b>${name}</b><small>${id==='penguin'?'SAS only':'Compare pair'} ↗</small></span>`;picker.append(button);button.addEventListener('click',()=>fit(id));
    groups.push({id,name,root,label,button,x,y});
  }
- resize();fit(null,true);schedule();
+ resize();fit(selected,true);schedule();
 
  async function addBody(g,method){
    const key=`${g.id}-${method}`,meta=await json(ROOT+key+'.json');
@@ -97,10 +110,12 @@ async function initialise(){
    const tray=new THREE.Mesh(new THREE.BoxGeometry(45,32,1.4),new THREE.MeshStandardMaterial({color:0xe4e7ef,roughness:.5,metalness:.15}));tray.position.z=4.1;scale.add(tray);
    const display=new THREE.Mesh(new THREE.BoxGeometry(24,4,.5),new THREE.MeshStandardMaterial({color:0x849ba6,roughness:.4}));display.position.set(0,-11.2,3.7);scale.add(display);
    const sweeper=new THREE.Mesh(new THREE.BoxGeometry(76,2,4),new THREE.MeshStandardMaterial({color:0xa798b4,roughness:.8}));offset.add(sweeper);sweeper.visible=false;
-   const label=document.createElement('div');label.className='physics-body-label';label.innerHTML=`${method==='sas'?'PhysRL3D · SAS':'TRELLIS.2'}<small>awaiting release</small>`;labels.append(label);
+   const label=document.createElement('div');label.className=`physics-body-label method-${method}`;label.innerHTML=`<b>${method==='sas'?'PhysRL3D':'TRELLIS.2'}</b><small>${method==='sas'?'SAS · OURS':'BASE GENERATOR'}</small>`;labels.append(label);
    const weight=massSummary(weightData.models[key]);
    const weightLabel=document.createElement('div');weightLabel.className='support-weight-label';weightLabel.innerHTML='<b>— g</b><span>Awaiting supports</span><small>Slicer estimate</small>';labels.append(weightLabel);
-   const entry={key,g,method,offset,body,chunks,motion,physics,label,meta,weight,weightLabel,scale,sweeper};bodies.push(entry);
+   const leader=document.createElement('div'),weightLeader=document.createElement('div');
+   for(const line of [leader,weightLeader]){line.className='physics-label-leader';line.hidden=true;labels.prepend(line);}
+   const entry={key,g,method,offset,body,chunks,motion,physics,label,meta,weight,weightLabel,leader,weightLeader,scale,sweeper};bodies.push(entry);
    applyBody(entry,0);return entry;
  }
  function physicsSample(entry,t){
@@ -127,7 +142,7 @@ async function initialise(){
    }
    entry.sweeper.visible=t>=SWEEP_START&&t<SWEEP_END;
    const sweep=smooth((t-SWEEP_START)/(SWEEP_END-SWEEP_START));entry.sweeper.position.set(0,45-100*sweep,3);
-   entry.label.querySelector('small').textContent=!entry.physics?'geometry view':t<RELEASE?'awaiting release':`tilt ${tilt.toFixed(1)}°`;
+   entry.label.title=entry.physics?`Tilt ${tilt.toFixed(1)} degrees`:'Original generated geometry; simulation pending';
    const weighed=t>=WEIGH_TIME&&entry.weight;
    entry.weightLabel.classList.toggle('is-weighed',Boolean(weighed));
    entry.weightLabel.querySelector('b').textContent=weighed?`${entry.weight.support.toFixed(2)} g`:'— g';
@@ -142,6 +157,7 @@ async function initialise(){
    play.textContent=playing?'Ⅱ Pause':time>=duration?'↻ Play again':'▶ Play';play.setAttribute('aria-pressed',String(playing));slider.value=time;
    host.dataset.ready=String(ready);host.dataset.time=time.toFixed(3);host.dataset.simulationTime=seconds.toFixed(3);host.dataset.playing=String(playing);
    const weighed=time>=WEIGH_TIME;host.dataset.weighed=String(weighed);if(host.dataset.detailState!==`${selected}-${weighed}`)updateMassDetail();
+   host.querySelectorAll('[data-support-stage]').forEach(button=>{const stageTime=Number(button.dataset.supportStage);button.setAttribute('aria-pressed',String(stageTime===0?time<.9:stageTime<WEIGH_TIME?time>=.9&&time<WEIGH_TIME:weighed));});
  }
  function updateMassDetail(){
    const detail=host.querySelector('.support-mass-detail');host.dataset.detailState=`${selected}-${time>=WEIGH_TIME}`;
@@ -157,13 +173,30 @@ async function initialise(){
  function projectLabels(){
    const w=stage.clientWidth,h=stage.clientHeight;
    function place(label,point,visible){p.copy(point).project(camera);label.hidden=!visible||p.z>1||p.z< -1||Math.abs(p.x)>1.2||Math.abs(p.y)>1.2;label.style.left=`${(p.x*.5+.5)*w}px`;label.style.top=`${(-p.y*.5+.5)*h}px`;}
-   for(const g of groups)place(g.label,new THREE.Vector3(g.x,g.y+95,18),g.root.visible);
-   for(const e of bodies){place(e.label,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-38,8),e.g.root.visible);place(e.weightLabel,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-99,8),e.g.root.visible);}
+   for(const g of groups)place(g.label,new THREE.Vector3(g.x,g.y+112,24),g.root.visible&&!selected);
+   for(const e of bodies){e.leader.hidden=e.weightLeader.hidden=true;place(e.label,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-41,10),e.g.root.visible);place(e.weightLabel,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-105,8),e.g.root.visible&&Boolean(selected));}
+   // Keep labels readable at oblique angles and extreme zoom. Short leader lines
+   // preserve the connection to each original projected model or scale position.
+   if(selected){
+     const placed=[];
+     const visible=bodies.filter(e=>e.g.root.visible);
+     const items=visible.map(e=>[e.label,e.leader]).concat(visible.map(e=>[e.weightLabel,e.weightLeader]));
+     for(const [label,line] of items){
+       if(label.hidden)continue;
+       const ax=parseFloat(label.style.left),ay=parseFloat(label.style.top),lw=label.offsetWidth,lh=label.offsetHeight;
+       const x=clamp(ax,lw/2+6,w-lw/2-6);let y=clamp(ay,lh/2+8,h-lh/2-8);
+       const offsets=[0,-42,42,-84,84,-126,126,-168,168,-210,210];
+       for(const delta of offsets){const cy=clamp(ay+delta,lh/2+8,h-lh/2-8);if(!placed.some(r=>Math.abs(x-r.x)<(lw+r.w)/2+5&&Math.abs(cy-r.y)<(lh+r.h)/2+5)){y=cy;break;}}
+       label.style.left=`${x}px`;label.style.top=`${y}px`;placed.push({x,y,w:lw,h:lh});
+       const dx=x-ax,dy=y-ay,length=Math.hypot(dx,dy);
+       if(length>12){line.hidden=false;line.style.left=`${ax}px`;line.style.top=`${ay}px`;line.style.width=`${length}px`;line.style.transform=`rotate(${Math.atan2(dy,dx)}rad)`;}
+     }
+   }
  }
  function tick(now){
    frame=0;if(!active())return;if(now-last<30){schedule();return;}const dt=Math.min(.1,(now-last)/1000);last=now;
    if(playing&&ready){time=Math.min(duration,time+dt);if(time>=duration)playing=false;}
-   if(cameraGoal){camera.position.lerp(cameraGoal,.12);controls.target.lerp(targetGoal,.12);if(camera.position.distanceTo(cameraGoal)<.15){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;}}
+   if(cameraGoal){const ease=1-Math.exp(-7*dt);camera.position.lerp(cameraGoal,ease);controls.target.lerp(targetGoal,ease);if(camera.position.distanceTo(cameraGoal)<.15){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;}}
    if(time!==renderedTime){for(const e of bodies)applyBody(e,time);renderedTime=time;updateUI();}controls.update();projectLabels();renderer.render(scene,camera);schedule();
  }
  function active(){return (inView||dialog.open)&&!document.hidden&&!contextLost;}
@@ -174,7 +207,7 @@ async function initialise(){
  play.addEventListener('click',()=>{if(time>=duration)time=0;playing=!playing;last=performance.now();updateUI();schedule();});
  replay.addEventListener('click',()=>{time=0;playing=true;last=performance.now();updateUI();schedule();});
  host.querySelector('[data-physics-overview]').addEventListener('click',()=>fit());
- host.querySelectorAll('[data-physics-zoom]').forEach(b=>b.addEventListener('click',()=>{cameraGoal=targetGoal=null;const factor=b.dataset.physicsZoom==='in'?.8:1.25;camera.position.sub(controls.target).multiplyScalar(factor).add(controls.target);controls.update();}));
+ host.querySelectorAll('[data-physics-zoom]').forEach(b=>b.addEventListener('click',()=>{const factor=b.dataset.physicsZoom==='in'?.8:1.25;targetGoal=controls.target.clone();const offset=camera.position.clone().sub(targetGoal);offset.setLength(clamp(offset.length()*factor,controls.minDistance,controls.maxDistance));cameraGoal=targetGoal.clone().add(offset);if(reduced){camera.position.copy(cameraGoal);cameraGoal=targetGoal=null;controls.update();}schedule();}));
  stage.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='r'){e.preventDefault();fit(selected);}if(e.key===' '){e.preventDefault();if(ready)play.click();}});
  let down=null;renderer.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
  renderer.domElement.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(bodies.filter(b=>b.g.root.visible).map(b=>b.body),true);if(hits[0]?.object.userData.example)fit(hits[0].object.userData.example);});
