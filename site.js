@@ -92,12 +92,5 @@ function faqUI(){const all=[...faq].every(d=>d.open);faqToggle.textContent=all?'
 faqToggle.onclick=()=>{const open=![...faq].every(d=>d.open);faq.forEach(d=>d.open=open);faqUI();};faq.forEach(d=>d.addEventListener('toggle',faqUI));
 document.getElementById('copy-citation').onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById('bibtex').textContent);document.getElementById('copy-status').textContent='Copied.';}catch{document.getElementById('copy-status').textContent='Copy unavailable — select the BibTeX text to copy manually.';}};
 
-// Existing turntable dividers and source clips remain intact. A render is not a physics test.
-const turntables=[...document.querySelectorAll('.turntable')];let turntablePlaying=!reduced.matches;
-const rate=document.getElementById('turntable-speed'),toggle=document.getElementById('turntable-toggle');
-function setTurntablePlayback(){const speed=Number(rate.value);document.getElementById('turntable-rate').textContent=speed+'×';toggle.textContent=turntablePlaying?'Pause turntables':'Play turntables';toggle.setAttribute('aria-pressed',String(turntablePlaying));for(const c of turntables)for(const v of c.querySelectorAll('video')){v.playbackRate=speed||1;if(turntablePlaying&&speed>0&&c.dataset.visible==='true'&&!document.hidden)v.play().catch(()=>{});else v.pause();}}
-const turnObserver=new IntersectionObserver(entries=>{for(const e of entries)e.target.dataset.visible=String(e.isIntersecting);setTurntablePlayback();});
-for(const c of turntables){const slider=c.querySelector('input'),base=c.querySelector('.base-layer video');c.querySelectorAll('video').forEach(v=>{v.removeAttribute('autoplay');v.pause();});const update=()=>{const reveal=Math.max(.02,Number(slider.value)/100);c.style.setProperty('--reveal',reveal);base.style.width=(100/reveal)+'%';};slider.addEventListener('input',update);update();const [ours,baseline]=c.querySelectorAll('video');ours.addEventListener('timeupdate',()=>{if(!ours.seeking&&Number.isFinite(baseline.duration)&&Math.abs(baseline.currentTime-ours.currentTime)>.16)baseline.currentTime=Math.min(ours.currentTime,baseline.duration);});turnObserver.observe(c);}
-rate.oninput=setTurntablePlayback;toggle.onclick=()=>{turntablePlaying=!turntablePlaying;setTurntablePlayback();};
-reduced.addEventListener('change',()=>{if(reduced.matches){auto=false;turntablePlaying=false;autoUI();setTurntablePlayback();}});
-setTurntablePlayback();
+// The NFT archive UI is withheld; preserve reduced-motion handling for highlights.
+reduced.addEventListener('change',()=>{if(reduced.matches){auto=false;autoUI();}});
