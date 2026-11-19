@@ -1,0 +1,14 @@
+:root{--ours:#7752ad;--base:#665d50;--bg:#fff}
+body{background:#fff}.wordmark i{display:none}.wordmark span{color:#7752ad}
+.highlight-summary p:nth-child(2){color:#4f3e63}
+html.embedded .nav,html.embedded .intro,html.embedded .highlights,html.embedded .next-section,html.embedded footer{display:none}
+html.embedded .explorer{padding-top:26px;padding-bottom:20px}
+html.embedded .explorer .section-heading{display:none}
+html.embedded .shell{width:calc(100% - 36px)}
+html.embedded .case-results.gallery{padding-left:18px;padding-right:18px}
+.view-switch button{min-height:44px}.search input{font-size:16px}
+.view-switch button,.category-label select,.gallery-options,.gallery-options button,.card-actions button,.grid .card-actions button,.method-label,.grid .method-label,.hero-case .method-label,.card-status,.dialog-tabs button,.dialog-tabs a,.asset-note,.microcopy,.footnote,.case-table,.case-table th{font-size:14px}
+.case-subtitle,.case-index,.still-tag,.card-time small,.status-pill,.clock-label,.angle small,.hero-input-label{font-size:12px}
+.card-status,.microcopy,.asset-note,.footnote{color:#746c7e;line-height:1.6}
+.card-actions button{min-height:40px}.card-controls{flex-wrap:wrap}.gallery-options{gap:16px;flex-wrap:wrap}
+@media(max-width:600px){.nav nav{flex-wrap:wrap;justify-content:flex-end}.nav nav a{font-size:14px}.intro h1{font-size:48px}}

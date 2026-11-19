@@ -41,7 +41,7 @@ let reduced=motionPreference.matches;
  const key=new THREE.DirectionalLight(0xffffff,1.8);key.position.set(-300,-500,900);scene.add(key);
  const fill=new THREE.DirectionalLight(0xe8e4f0,.65);fill.position.set(500,400,500);scene.add(fill);
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(4000,3000),new THREE.MeshBasicMaterial({color:0xfafafa,toneMapped:false}));floor.position.z=-5;scene.add(floor);
- const bodyMaterial=new THREE.MeshStandardMaterial({color:0xc9c6cf,roughness:.72,metalness:0});
+ const bodyMaterial=new THREE.MeshStandardMaterial({color:0xeeeae4,roughness:.62,metalness:0});
  const supportMaterial=new THREE.MeshStandardMaterial({color:0x258bdf,roughness:.5,metalness:.08});
  const supportCube=new THREE.BoxGeometry(1,1,1),loader=new GLTFLoader();
  const groups=[],bodies=[];let selected=oursOnly?null:'chair',ready=false,simulationReady=false,time=0,playing=false,inView=false,contextLost=false,duration=RELEASE;

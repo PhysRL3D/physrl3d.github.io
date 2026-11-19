@@ -1,0 +1,41 @@
+{
+  "duration": 50,
+  "resolution": [
+    1920,
+    1080
+  ],
+  "fps": 30,
+  "audio": "silent",
+  "chapters": [
+    [
+      "Logo",
+      0
+    ],
+    [
+      "Real print",
+      3
+    ],
+    [
+      "Three objectives",
+      9
+    ],
+    [
+      "Material example",
+      15
+    ],
+    [
+      "Method",
+      23
+    ],
+    [
+      "HY3D-Bench",
+      33
+    ],
+    [
+      "Explore",
+      44
+    ]
+  ],
+  "sourceCommit": "3dda341b237d504077f313ec39ff4441873da491",
+  "note": "No synthetic experimental motion. Support breakup is illustrative. Real print is 0.5x with final hold. Numerical claims are existing Table 2 means."
+}

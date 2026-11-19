@@ -1,0 +1,28 @@
+WEBVTT
+
+00:00.000 --> 00:03.000
+PhysRL3D. Beyond visual appearance.
+Physical objectives, built into the generator.
+
+00:03.000 --> 00:09.000
+Selected real print: TRELLIS.2 falls; PhysRL3D-SAS stands.
+Source plays at 0.5×; the final frame is held.
+
+00:09.000 --> 00:15.000
+Standability, material efficiency and geometric fidelity.
+Improving one objective can compromise the others.
+
+00:15.000 --> 00:23.000
+Christmas tree: 18.91 g to 14.06 g total, including supports.
+Slicer estimates; support removal is an illustrative animation.
+
+00:23.000 --> 00:33.000
+Post-train the first stage with DiffusionNFT and SAS.
+Online rewards require no simulator or slicer queries.
+
+00:33.000 --> 00:44.000
+HY3D-Bench: 84.8% to 98.2% standability; 11.8% less total material.
+Three-seed averages, not a guarantee for every object.
+
+00:44.000 --> 00:50.000
+PhysRL3D. Explore the evidence at physrl3d.github.io.

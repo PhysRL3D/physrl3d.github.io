@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>PhysRL3D — See what stands</title>
+  <meta name="description" content="Explore paired standability tests of TRELLIS.2 and PhysRL3D-SAS.">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="published.css">
+  <meta name="robots" content="noindex,nofollow">
+  <script>if(new URLSearchParams(location.search).has('embedded'))document.documentElement.classList.add('embedded');</script>
+  <script defer src="cases.js"></script>
+  <script defer src="core.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#cases">Skip to the cases</a>
+  <header class="nav shell">
+    <a class="wordmark" href="#top">PhysRL<span>3D</span><i></i></a>
+    <nav aria-label="Main navigation"><a href="#highlights">Source replay</a><a href="#cases">Explore cases</a><a href="../#support-examples" target="_top">Interactive 3D</a><a class="nav-pill" href="../" target="_top">Project home</a></nav>
+  </header>
+  <main id="top">
+    <section class="intro shell">
+      <p class="eyebrow">BEYOND VISUAL APPEARANCE</p>
+      <h1>Looks are only<br><span>part of the story.</span></h1>
+      <p class="intro-copy">Standability. Material efficiency. Geometric fidelity.<br>Explore the physical side of image-to-3D generation.</p>
+      <a class="primary-link" href="#highlights">See the difference <span>↓</span></a>
+    </section>
+
+    <section id="highlights" class="highlights shell" aria-labelledby="highlights-title">
+      <div class="section-heading"><div><p class="eyebrow">THE HIGHLIGHTS</p><h2 id="highlights-title">One image.<br>Two outcomes.</h2></div><a href="#cases" class="text-link">Explore all 20 cases ↗</a></div>
+      <div class="feature">
+        <div class="feature-heading"><div><p class="eyebrow">RIGID-BODY STANDABILITY TEST</p><h3>Start from rest.<br>See what stays upright.</h3></div><div class="clock"><span class="clock-label">PAPER ENDPOINT</span><strong id="hero-clock">≈10<span> s</span></strong></div></div>
+        <div id="hero-pairs" class="hero-pairs"></div>
+        <div class="feature-controls"><div class="legend"><span><i class="base-dot"></i>TRELLIS.2</span><span><i class="ours-dot"></i>PhysRL3D-SAS</span></div><button id="hero-play" class="play-button" disabled>▶ Simulation videos pending</button></div>
+        <p id="hero-status" class="microcopy">Archived end-state images, not a running simulation. Existing source clips reportedly show 0–2.96 s, then jump to a held frame at 9.96 s. The timer will preserve and label this jump when verified clips are connected.</p>
+      </div>
+      <div class="highlight-summary"><p><b>20 paired examples.</b><br>Inspect the geometry, then the final pose.</p><p><b>19 SAS examples at 0°.</b><br>One retains an 11° tilt. Both outcomes stay visible.</p><p class="selection-note">Selected HY3D-Bench cases where TRELLIS.2 tilts. These are qualitative examples, not a full-benchmark success rate.</p></div>
+    </section>
+
+    <section id="cases" class="explorer" aria-labelledby="cases-title">
+      <div class="shell"><div class="section-heading"><div><p class="eyebrow">A CLOSER LOOK</p><h2 id="cases-title">Keep exploring.</h2><p class="section-copy">Swipe through every comparison. Or find exactly what you want.</p></div><span id="result-count" class="count" aria-live="polite">20 cases</span></div>
+        <div class="explorer-toolbar"><div class="view-switch" role="group" aria-label="Choose view"><button data-view="gallery" aria-pressed="true">↔ Gallery</button><button data-view="grid" aria-pressed="false">▦ Grid</button><button data-view="table" aria-pressed="false">☷ Table</button></div><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search objects, categories…" aria-label="Search cases"></label><label class="category-label"><span class="sr-only">Category</span><select id="category"><option value="all">All categories</option><option value="character">Characters</option><option value="animal">Animals</option><option value="vegetation">Vegetation</option><option value="object">Objects &amp; vehicles</option></select></label></div>
+        <div class="gallery-options"><span id="browse-hint">Drag or swipe to explore <span aria-hidden="true">⟶</span></span><div><button id="auto-browse" aria-pressed="true">Ⅱ Pause auto-browse</button><button id="previous" aria-label="Previous case">←</button><button id="next" aria-label="Next case">→</button></div></div>
+      </div>
+      <div id="case-results" class="case-results gallery" tabindex="0" aria-label="Simulation case gallery"></div>
+      <div id="empty-state" class="shell empty-state" hidden><h3>No matching cases.</h3><p>Try a different name or category.</p><button id="clear-search">Clear filters</button></div>
+      <p class="shell footnote">Figure 10 · 20 selected HY3D-Bench objects · final tilt reported at approximately 10 s. Blender rigid-body visualizations are separate from the paper’s MuJoCo benchmark. “Tilts” does not mean “cannot be printed.”</p>
+    </section>
+
+    <section class="next-section shell"><div><p class="eyebrow">ONE CASE. DIFFERENT VIEWS.</p><h2>From every angle.<br>And in the real world.</h2></div><p>Simulation, 360° renders and physical prints will share one case identity. Only matched, verified assets are connected; a turntable is not a physics test.<br><a class="text-link" href="https://physrl3d.github.io/#prints" target="_blank" rel="noopener">See the current real-print demonstrations ↗</a></p></section>
+  </main>
+  <footer class="shell"><b>PhysRL3D</b><span>20 endpoint pairs · 1 source video pair · 19 video pairs not available</span></footer>
+  <dialog id="case-dialog" aria-labelledby="dialog-title"><div class="dialog-top"><h2 id="dialog-title">Case</h2><button id="close-dialog" aria-label="Close case">×</button></div><div id="dialog-body"></div></dialog>
+  <noscript><p class="shell">The interactive explorer requires JavaScript. <a href="../">Return to the research overview.</a></p></noscript>
+</body>
+</html>

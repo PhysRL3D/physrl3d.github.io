@@ -1,0 +1,54 @@
+PhysRL3D website and 50-second research film — 20 November 2026
+
+Based on published website commit 3dda341b237d504077f313ec39ff4441873da491.
+Existing 3D controls, methods, numerical tables and grouped real-print evidence are preserved.
+
+Added
+- Black PhysRL / purple extruded 3D wordmark, editable SVG.
+- Silent 1920x1080, 30 fps film, 50 seconds, with English captions.
+- Main-page film section and standalone /film/ player.
+- /examples/ explorer: all 20 selected Figure 10 cases, horizontal gallery,
+  search, category filtering, grid, sortable table and detail inspection.
+- Brighter neutral geometry display; original textures are NOT synthesized.
+
+Film edit
+00–03  Logo and visual-to-physical motivation.
+03–09  Existing kangaroo paired real-print footage (0.5x source; final hold).
+09–15  Standability, material efficiency and geometric fidelity.
+15–23  Christmas-tree support-removal illustration and slicer estimates.
+23–33  First-stage post-training, DiffusionNFT + SAS, unchanged inference.
+33–44  Existing Table 2 HY3D-Bench means versus TRELLIS.2.
+44–50  Project wordmark and website.
+
+Evidence boundaries
+- Kangaroo footage is a selected physical release test, not a simulation.
+- The support breakup animation is illustrative, not a physics prediction.
+- Tree grams are slicer estimates, not scale measurements; purge/prime excluded.
+- Benchmark means are not a claim about every individual example or metric.
+- 20 endpoint pairs are included, including the SAS case with 11-degree tilt.
+- Only the hydrant currently has a verified paired source replay. Its edited
+  4-second source shows 0–2.96 simulation seconds, then holds the 9.96-second
+  endpoint. The clock labels that jump. Other 19 cases are still-only.
+- Display-mesh cutaways are not G-code toolpaths or physical infill.
+- No new training, rerun simulation, artificial empirical video or texture
+  inference is included in this release.
+
+QA
+- 9 release regression tests pass (cases, file integrity, video SHA-256,
+  timeline discontinuity, filter identities, film assets and claim labels).
+- ffprobe: H.264, 1920x1080, 30fps, 1500 frames, exactly 50.000 seconds.
+- Film keyframes and browser poster visually reviewed.
+- Browser: case search, table switching and paired-video decoding checked.
+- Browser: film metadata reports 50 seconds and 1920x1080.
+- Responsive CSS provided. In-app viewport override did not take effect;
+  no claim of a completed real mobile-device visual test.
+
+Rebuild
+node tools/render-film.cjs (requires sharp on NODE_PATH and ffmpeg on PATH)
+node --test tools/release.test.cjs
+node tools/serve.js 8735
+
+Follow-up assets: 19 matched source trajectories, real textures for the seven
+home meshes, matched slicer toolpaths for genuine internal slicing, and any
+new evidence from the separately running experiments. Do not attach by name
+alone: match input, mesh, checkpoint and timing first.
