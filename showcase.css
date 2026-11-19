@@ -1,0 +1,189 @@
+/* One continuous home exhibit; native document flow for the evidence below. */
+.showcase-page { background:#fff; color:#242328; }
+.showcase-page main { padding-top:76px; }
+.showcase-page .topbar { background:#fffffff5; backdrop-filter:none; box-shadow:0 2px 16px #30263c08; }
+.showcase-page .topbar nav a,.showcase-page .topbar summary { font-size:14px; }
+.showcase-page .showcase-gallery { background:#fff; padding:0; }
+.showcase-page .showcase-viewer {
+ --rail:224px; position:relative; width:100%; height:calc(100svh - 76px); min-height:780px;
+ margin:0; padding:0; border:0; border-radius:0; background:#fff; color:#242328; overflow:hidden;
+ box-shadow:none; isolation:isolate;
+}
+.showcase-page .showcase-viewer .physics-intro { position:absolute; top:24px; left:28px; max-width:45%; z-index:3; pointer-events:none; visibility:visible; display:block; margin:0; }
+.showcase-page .physics-intro .eyebrow { font-size:14px; letter-spacing:1.1px; color:#654186; margin:0 0 8px; max-width:none; }
+.showcase-page .physics-intro h1 { color:#242328; font-size:clamp(38px,4vw,64px); line-height:1.05; letter-spacing:-2px; margin:0; }
+.showcase-page .physics-intro h3 { font-size:clamp(27px,3vw,42px); line-height:1.1; letter-spacing:-1.3px; margin:0; }
+.showcase-page .physics-intro h1 span,.showcase-page .physics-intro h3 span { color:#8460ad; }
+.showcase-page .physics-intro>p:last-child { font-size:16px; line-height:1.5; color:#625e6c; margin:10px 0 0; display:block; max-width:430px; }
+.showcase-page .showcase-viewer .physics-topline { position:absolute; top:28px; right:calc(var(--rail) + 38px); left:auto; bottom:auto; max-width:29%; display:flex; gap:12px; border:0; padding:0; z-index:3; }
+.showcase-page .phase-tag { font-size:14px; line-height:1.45; color:#654186; max-width:280px; }
+.showcase-page .physics-caption { display:flex; flex-wrap:wrap; font-size:14px; line-height:1.45; gap:6px; margin-top:8px; }
+.showcase-page .physics-clock { min-width:72px; }
+.showcase-page .physics-clock>span,.showcase-page .physics-clock small { font-size:14px; white-space:normal; }
+.showcase-page .physics-clock { max-width:130px; }
+.showcase-page .showcase-viewer:not([data-standing-released=true]) .physics-clock { display:none; }
+.showcase-page .physics-clock output { font-size:26px; display:block; }
+.showcase-page .showcase-viewer .pair-composition { position:absolute; inset:0 calc(var(--rail) + 20px) 0 0; display:block; min-width:0; }
+.showcase-page .showcase-viewer .physics-stage { position:absolute; inset:0; width:100%; height:100%; margin:0; border:0; background:#fff; border-radius:0; touch-action:pan-y; }
+.showcase-page .physics-loading { padding:170px 30px 220px; font-size:16px; }
+.showcase-page .showcase-viewer .pair-input { position:absolute; top:178px; left:24px; width:145px; max-height:calc(100% - 430px); padding:12px; border:1px solid #e1dce8; border-radius:16px; background:#fffffff0; box-shadow:0 5px 20px #30263c08; backdrop-filter:none; display:block; overflow:auto; }
+.showcase-page .showcase-viewer[data-focus=all] .pair-input { display:none; }
+.showcase-page .showcase-viewer:not([data-focus=all]) .physics-intro h1,.showcase-page .showcase-viewer:not([data-focus=all]) .physics-intro h3 { font-size:28px; letter-spacing:-1px; }
+.showcase-page .showcase-viewer:not([data-focus=all]) .physics-intro>p { display:none; }
+.showcase-page .showcase-viewer:not([data-focus=all]) .pair-input { top:90px; }
+.showcase-page .pair-input-heading { font-size:14px; gap:5px; letter-spacing:0; }
+.showcase-page .pair-input h3 { font-size:22px; margin:10px 0 5px; }
+.showcase-page .pair-input p,.showcase-page .pair-method-key,.showcase-page .pair-method-key small { font-size:14px; line-height:1.4; }
+.showcase-page .pair-method-key { margin-top:12px; }
+.showcase-page [data-showcase=ours] .pair-method-key i { background:#8460ad; }
+.showcase-page .stage-corner-note { display:none; }
+.showcase-actions { position:absolute; z-index:6; top:24px; right:20px; bottom:20px; width:var(--rail); border-left:1px solid #e8e3ed; padding:18px 0 0 20px; display:flex; flex-direction:column; gap:18px; background:#fff; overflow:auto; }
+.showcase-actions>.eyebrow { font-size:14px; margin:0 0 4px; color:#625e6c; letter-spacing:1.5px; }
+.showcase-action-list { display:flex; flex-direction:column; gap:7px; }
+.showcase-action-list button { border:1px solid transparent; background:transparent; color:#625e6c; padding:12px 10px; border-radius:12px; display:flex; align-items:center; gap:11px; text-align:left; font:inherit; font-size:14px; min-height:46px; cursor:pointer; }
+.showcase-action-list button>span { font-variant-numeric:tabular-nums; font-size:14px; color:#80718e; }
+.showcase-action-list button:hover { background:#f7f5fa; color:#242328; }
+.showcase-action-list button[aria-pressed=true] { background:#f2edf8; border-color:#d8c8e6; color:#654186; font-weight:600; }
+.showcase-speed { display:flex; flex-direction:column; gap:8px; color:#625e6c; font-size:14px; padding-top:12px; border-top:1px solid #e8e3ed; }
+.showcase-speed select,.gallery-motion-control select { min-height:44px; background:#fff; border:1px solid #c3b6cf; border-radius:10px; padding:9px 12px; font:inherit; color:#242328; font-size:14px; }
+.showcase-hint { font-size:14px; line-height:1.5; color:#625e6c; margin:0; }
+.showcase-next-section { margin-top:auto; color:#654186; display:flex; justify-content:space-between; gap:8px; padding:14px 8px; font-size:14px; }
+.showcase-page .showcase-viewer .spatial-controls { position:absolute; z-index:7; left:24px; right:calc(var(--rail) + 40px); bottom:16px; top:auto; max-width:none; padding:12px 14px 8px; margin:0; background:#fffffff5; border:1px solid #e1dce8; border-radius:20px; box-shadow:0 8px 24px #30263c09; backdrop-filter:none; display:block; }
+.showcase-page .spatial-controls .physics-toolbar { flex-wrap:wrap; gap:8px; }
+.showcase-page .spatial-controls .physics-toolbar>div { flex-wrap:wrap; }
+.showcase-page .spatial-controls .physics-toolbar button,.showcase-page .physics-extra>summary { font-size:14px; padding:8px 12px; min-height:44px; height:auto; }
+.showcase-page .physics-toolbar [data-physics-play] { background:#654186; border-color:#654186; min-width:100px; }
+.showcase-page .spatial-controls [data-physics-overview],.showcase-page .spatial-controls [data-physics-expand] { width:auto; }
+.showcase-page .spatial-controls [data-physics-overview]>span,.showcase-page .spatial-controls [data-physics-expand]>span { display:inline; }
+.showcase-page .physics-toolbar button:disabled { opacity:.45; cursor:not-allowed; }
+.showcase-page .spatial-controls .physics-scrubber { font-size:14px; min-height:28px; height:auto; gap:12px; margin:7px 0; }
+.showcase-page .physics-scrubber>span:first-child { min-width:120px; }
+.showcase-browse-row { display:flex; align-items:center; gap:7px; min-width:0; }
+.showcase-browse-row>button { flex:0 0 38px; min-height:44px; border:1px solid #dedbe4; border-radius:10px; background:#fff; color:#654186; cursor:pointer; font-size:20px; }
+.showcase-page .spatial-controls .physics-picker { display:flex; flex:1; min-width:0; overflow-x:auto; scroll-snap-type:x proximity; padding:4px 0; gap:8px; }
+.showcase-page .spatial-controls .physics-picker button { flex:0 0 168px; padding:8px 10px; min-height:62px; border-radius:12px; gap:9px; }
+.showcase-page .physics-picker img { width:36px; height:36px; }
+.showcase-page .physics-picker b,.showcase-page .physics-picker small,.showcase-page .picker-number { font-size:14px; }
+.showcase-page [data-showcase=ours] .physics-picker small { display:none; }
+.showcase-page [data-showcase=ours] .physics-picker button { min-height:50px; }
+.showcase-page .physics-toolbar [data-physics-slice] { display:none; }
+.showcase-page .showcase-viewer[data-showcase-action=sequence] .mesh-slice-controls { display:none; }
+.showcase-page .physics-picker small { line-height:1.2; margin-top:4px; }
+.showcase-page .picker-number { display:none; }
+.showcase-page .spatial-footer { display:flex; gap:12px; padding-top:6px; }
+.showcase-page .spatial-footer .physics-help { font-size:14px; color:#625e6c; line-height:1.4; }
+.showcase-page [data-showcase-browse] { padding:7px 4px; min-height:40px; background:none; border:0; color:#654186; font:inherit; font-size:14px; cursor:pointer; }
+.showcase-page [data-showcase-browse][hidden] { display:none; }
+.showcase-page .physics-extra-panel { background:#fff; color:#242328; width:390px; max-width:calc(100vw - 60px); border:1px solid #d4cbdc; border-radius:16px; box-shadow:0 15px 60px #30263c25; backdrop-filter:none; bottom:54px; }
+.showcase-page .physics-extra-panel p,.showcase-page .physics-extra-panel button,.showcase-page .physics-extra-panel small,.showcase-page .support-mass-card>span,.showcase-page .standing-detail-card small,.showcase-page .standing-detail-card output { font-size:14px; line-height:1.5; }
+.showcase-page .mesh-slice-controls { font-size:14px; }
+.showcase-page .mesh-slice-heading,.showcase-page .mesh-slice-heading button,.showcase-page .mesh-slice-range,.showcase-page .mesh-slice-heights,.showcase-page .mesh-slice-disclosure { font-size:14px; line-height:1.4; }
+.showcase-page .physics-pair-label b,.showcase-page .physics-pair-label small,.showcase-page .physics-body-label,.showcase-page .physics-body-label small { font-size:14px; }
+.showcase-page .support-weight-label span,.showcase-page .support-weight-label small { font-size:14px; line-height:1.4; }
+.showcase-page .showcase-viewer:not([data-showcase-phase=weight]) .support-weight-label { display:none!important; }
+.showcase-page .showcase-viewer:not([data-scene-mode=standing]) .standing-body-readout { display:none; }
+.showcase-page .physics-viewer[data-focus=all] .physics-pair-label { padding:4px 8px; box-shadow:none; border-color:#e4dfe9; background:#fffffff0; }
+.showcase-page .physics-viewer[data-focus=all] .physics-pair-label small,.showcase-page .physics-viewer[data-focus=all] .physics-pair-label img { display:none; }
+.showcase-page .physics-viewer[data-focus=all] .support-weight-label { padding:4px 7px; min-width:0; }
+.showcase-page .physics-viewer[data-focus=all] .support-weight-label span,.showcase-page .physics-viewer[data-focus=all] .support-weight-label small { display:none; }
+.showcase-page .physics-viewer[data-focus=all] .support-weight-label b { font-size:16px; }
+.showcase-page .physics-viewer[data-focus=all] .physics-body-label { display:none; }
+.showcase-evidence-note { display:flex; align-items:baseline; gap:13px; padding:20px 28px; color:#625e6c; border-top:1px solid #eee9f2; font-size:14px; line-height:1.5; background:#fff; }
+.showcase-evidence-note p { margin:0; flex:1; }
+.showcase-evidence-note a { color:#654186; white-space:nowrap; }
+.evidence-dot { height:7px; width:7px; background:#8460ad; border-radius:50%; flex:none; }
+.showcase-section-heading { padding:88px 32px 36px; display:flex; justify-content:space-between; gap:40px; align-items:end; max-width:1500px; margin:auto; }
+.showcase-section-heading h2 { font-size:clamp(34px,4.2vw,64px); line-height:1.04; letter-spacing:-1.8px; margin:12px 0 0; }
+.showcase-section-heading h2 span { color:#8460ad; }
+.showcase-section-heading>p { max-width:370px; font-size:16px; color:#625e6c; line-height:1.6; }
+.showcase-page .comparison-gallery .showcase-viewer { height:850px; min-height:780px; border-block:1px solid #eee9f2; }
+.showcase-page .showcase-gallery>.physics-protocol { max-width:none; width:auto; background:#fff; color:#625e6c; font-size:16px; line-height:1.65; padding:22px 32px; }
+.showcase-page .physics-protocol summary { cursor:pointer; color:#654186; min-height:44px; }
+.showcase-media { position:absolute; z-index:5; left:190px; right:calc(var(--rail) + 40px); top:160px; bottom:230px; background:#fff; border:1px solid #dedbe4; border-radius:20px; padding:18px; overflow:auto; box-shadow:0 15px 60px #30263c18; }
+.showcase-media[hidden] { display:none!important; }
+.showcase-media-heading { display:flex; justify-content:space-between; align-items:center; gap:15px; margin-bottom:15px; }
+.showcase-media h3 { margin:0; font-size:22px; }
+.showcase-media button { min-height:44px; padding:8px 13px; background:#fff; color:#654186; border:1px solid #cbbbd9; border-radius:10px; font-size:14px; cursor:pointer; }
+.showcase-media p { font-size:16px; line-height:1.6; color:#625e6c; }
+.showcase-media figure { margin:0 0 20px; }
+.showcase-media img,.showcase-media video { display:block; width:100%; max-height:400px; object-fit:contain; background:#f7f5fa; border-radius:12px; }
+.showcase-media figcaption { font-size:14px; line-height:1.5; margin-top:10px; }
+.showcase-media-nav { display:flex; align-items:center; flex-wrap:wrap; gap:10px; font-size:14px; }
+.showcase-media .showcase-media-note { font-size:14px; line-height:1.5; }
+.showcase-page .showcase-dialog { width:100vw; max-width:100vw; height:100dvh; max-height:100dvh; margin:0; padding:0; border:0; border-radius:0; background:#fff; overflow:hidden; }
+.showcase-dialog .physics-dialog-bar { position:relative; height:58px; display:flex; justify-content:space-between; align-items:center; padding:8px 24px; background:#fff; border-bottom:1px solid #dedbe4; font-size:14px; }
+.showcase-dialog .physics-dialog-bar button { min-height:44px; font-size:14px; }
+.showcase-dialog .physics-dialog-content { height:calc(100% - 58px); }
+.showcase-page .showcase-dialog .showcase-viewer { height:100%; min-height:0; }
+.gallery-motion-control { display:inline-flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:14px; }
+.gallery-motion-control select { max-width:160px; }
+.showcase-page [data-inspect-browse] { min-height:44px; font-size:14px; }
+.showcase-page button:focus-visible,.showcase-page a:focus-visible,.showcase-page select:focus-visible { outline:3px solid #8460ad; outline-offset:3px; }
+@media(max-width:1100px) and (min-width:761px) {
+ .showcase-page .showcase-viewer { --rail:190px; }
+ .showcase-page .showcase-viewer .physics-topline { max-width:23%; }
+ .showcase-page .physics-caption { display:none; }
+ .showcase-page .physics-clock { display:none; }
+ .showcase-actions { padding-left:12px; }
+ .showcase-action-list button { padding-inline:6px; gap:7px; }
+ .showcase-page .physics-intro>p:last-child { max-width:360px; }
+ .showcase-page .physics-toolbar [data-physics-overview]>span { display:none; }
+}
+@media(max-width:760px) {
+ .showcase-page main { padding-top:66px; }
+ .showcase-page .topbar { inset:6px 8px auto; }
+ .showcase-page .topbar .brand { font-size:23px; }
+ .showcase-page .topbar nav>.nav-button:first-of-type { display:none; }
+ .showcase-page .topbar nav a,.showcase-page .topbar summary { font-size:14px; }
+ .showcase-page .showcase-viewer,.showcase-page .comparison-gallery .showcase-viewer { min-height:0; height:auto; --rail:0px; display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:590px auto auto; }
+ .showcase-page .showcase-viewer .physics-intro { top:20px; left:18px; max-width:calc(100% - 36px); visibility:visible; }
+ .showcase-page .physics-intro .eyebrow { font-size:14px; letter-spacing:.5px; }
+ .showcase-page .physics-intro h1 { font-size:42px; letter-spacing:-1.5px; }
+ .showcase-page .physics-intro h3 { font-size:31px; }
+ .showcase-page .physics-intro>p:last-child { display:none; }
+ .showcase-page .showcase-viewer .pair-composition { inset:0 0 auto; height:590px; }
+ .showcase-page .showcase-viewer .physics-topline { top:104px; left:18px; right:18px; bottom:auto; max-width:none; }
+ .showcase-page .showcase-viewer[data-focus=all] .physics-topline { top:140px; }
+ .showcase-page .showcase-viewer:not([data-focus=all]) .physics-topline { top:65px; }
+ .showcase-page .showcase-viewer:not([data-focus=all]) .pair-input { top:110px; }
+ .showcase-page .physics-caption { display:none; }
+ .showcase-page .physics-clock { display:none; }
+ .showcase-page .showcase-viewer .pair-input { top:150px; left:18px; right:auto; width:110px; max-height:165px; display:block; padding:9px; }
+ .showcase-page .pair-input .pair-input-heading { font-size:14px; }
+ .showcase-page .pair-input .pair-input-image { width:70px; height:70px; margin:0; }
+ .showcase-page .pair-input h3 { font-size:18px; margin:6px 0; }
+ .showcase-page .pair-input p,.showcase-page .pair-method-key { display:none; }
+ .showcase-page .showcase-viewer .spatial-controls { position:relative; grid-column:1; grid-row:2; left:auto; right:auto; top:auto; bottom:auto; padding:10px; margin:0 10px; }
+ .showcase-page .spatial-controls .physics-toolbar { gap:6px; }
+ .showcase-page .spatial-controls .physics-toolbar button { font-size:14px!important; padding:8px!important; min-width:44px; }
+ .showcase-page .physics-toolbar [data-physics-overview]>span,.showcase-page .physics-toolbar [data-physics-expand]>span { display:none; }
+ .showcase-page .spatial-controls .physics-scrubber { font-size:14px; display:flex; flex-wrap:wrap; gap:5px; }
+ .showcase-page .physics-scrubber input { order:3; width:100%; flex:1 0 100%; }
+ .showcase-page .physics-scrubber>span:last-child { margin-left:auto; }
+ .showcase-page .spatial-controls .physics-picker button { flex-basis:146px; }
+ .showcase-page .spatial-footer { align-items:center; }
+ .showcase-page .spatial-footer .physics-help { max-width:58%; }
+ .showcase-page [data-showcase-browse] { max-width:40%; text-align:right; line-height:1.35; }
+ .showcase-actions { position:relative; grid-row:3; grid-column:1; top:auto; bottom:auto; left:auto; right:auto; width:auto; height:auto; min-height:135px; margin:12px; border-left:0; border-top:1px solid #e8e3ed; padding:10px 0 0; gap:8px; display:grid; grid-template-columns:1fr auto; overflow:visible; }
+ .showcase-actions>.eyebrow,.showcase-hint,.showcase-next-section { display:none; }
+ .showcase-action-list { grid-column:1 / -1; flex-direction:row; overflow-x:auto; gap:6px; padding:3px 0; }
+ .showcase-action-list button { flex:0 0 auto; min-height:46px; padding:9px 12px; border:1px solid #e8e3ed; }
+ .showcase-action-list button>span { display:none; }
+ .showcase-speed { grid-column:1 / -1; flex-direction:row; align-items:center; justify-content:space-between; padding:0; border:0; }
+ .showcase-speed select { width:155px; }
+ .showcase-media { top:155px; bottom:auto; height:395px; left:12px; right:12px; padding:14px; }
+ .showcase-media h3 { font-size:20px; }
+ .showcase-media img,.showcase-media video { max-height:260px; }
+ .showcase-evidence-note { padding:18px; flex-wrap:wrap; }
+ .showcase-evidence-note a { margin-left:20px; }
+ .showcase-section-heading { padding:55px 20px 28px; display:block; }
+ .showcase-section-heading h2 { font-size:42px; }
+ .showcase-page .showcase-gallery>.physics-protocol { padding:20px; }
+ .showcase-page .showcase-dialog { overflow:auto; }
+ .showcase-page .showcase-dialog .showcase-viewer { min-height:0; height:auto; }
+ .showcase-page .physics-extra-panel { right:0; max-width:calc(100vw - 40px); }
+ .showcase-page .physics-viewer[data-focus=all] .physics-pair-label img { display:none; }
+ .showcase-page .physics-viewer[data-focus=all] .physics-pair-label small { display:none; }
+ .showcase-page .physics-viewer[data-focus=all] .physics-pair-label b { font-size:14px; }
+}
+@media(prefers-reduced-motion:reduce) { .showcase-page * { scroll-behavior:auto!important; } }

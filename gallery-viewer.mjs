@@ -4,6 +4,17 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const colours = { baseline: 0xc65b55, ours: 0x2878b5 };
 
+// One complete camera orbit per minute at 1×; this never rotates source geometry.
+function orbitStep(deltaSeconds, speed = 1) {
+  return Number.isFinite(deltaSeconds) && deltaSeconds > 0 && [.5, 1, 2].includes(speed)
+    ? Math.PI * 2 * deltaSeconds * speed / 60 : 0;
+}
+
+function advanceBrowse(elapsed, deltaSeconds, enabled, speed = 1) {
+  const next = elapsed + (enabled && Number.isFinite(deltaSeconds) && deltaSeconds > 0 ? deltaSeconds * speed : 0);
+  return { elapsed: next >= 16 ? next % 16 : next, advance: enabled && next >= 16 };
+}
+
 // New print meshes share one scale and one vertical origin. Legacy exports are
 // explicitly display-normalised separately; neither policy changes orientation.
 export function pairLayout(boxes, shared = true) {
@@ -54,16 +65,50 @@ function initialiseGallery(section) {
   const previousButton = section.querySelector('[data-inspect-prev]');
   const nextButton = section.querySelector('[data-inspect-next]');
   const methodButtons = [...panel.querySelectorAll('[data-inspect-method]')];
+  const speedControl = document.createElement('label'); speedControl.className = 'gallery-motion-control';
+  speedControl.innerHTML = 'Motion speed <select data-gallery-speed aria-label="3D gallery motion speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>';
+  const speedSelect = speedControl.querySelector('select');
+  const browseButton = document.createElement('button'); browseButton.type = 'button'; browseButton.dataset.inspectBrowse = '';
+  panel.querySelector('.inspection-controls').append(speedControl, browseButton);
   const loader = new GLTFLoader();
   let index = 0, method = 'both', renderer = null, scene, camera, controls;
   let models = [], requestId = 0, fittedDistance = 5, aspect = 1, frameId = 0;
   let inView = false, contextLost = false, placeholder = null;
+  let spinning = true, browsing = true, speed = 1, browseElapsed = 0, loadingModel = false;
+  let lastFrameTime = null, dirty = true, settleUntil = 0, interacting = false;
+  let renderWidth = 0, renderHeight = 0;
+  const hoverRoots = new Set();
   const initialDirection = new THREE.Vector3(2.1, 1.4, 4.8).normalize();
+  const orbitOffset = new THREE.Vector3();
 
   function setSpin(value) {
-    if (controls) controls.autoRotate = value;
+    spinning = value;
+    if (controls) controls.autoRotate = false;
     spinButton.setAttribute('aria-pressed', String(value));
     spinButton.textContent = value ? 'Pause rotation' : 'Rotate';
+    updateActivity();
+  }
+  function updateMotionUI() {
+    spinButton.disabled = reducedMotion.matches;
+    spinButton.title = reducedMotion.matches ? 'Automatic rotation is disabled by your reduced-motion preference.' : 'Rotation pauses while you hover, focus or interact with the gallery.';
+    browseButton.disabled = reducedMotion.matches || cards.length < 2;
+    browseButton.setAttribute('aria-pressed', String(browsing));
+    browseButton.textContent = browsing ? 'Pause browsing' : 'Resume browsing';
+    browseButton.setAttribute('aria-label', browsing ? 'Pause automatic example browsing' : 'Resume automatic example browsing');
+    browseButton.title = reducedMotion.matches ? 'Automatic browsing is disabled by your reduced-motion preference.' : 'Next example every 16 seconds at 1×; pauses during interaction and in the enlarged view.';
+    speedSelect.disabled = reducedMotion.matches;
+  }
+  function interactionPaused() {
+    const focused = document.activeElement;
+    // Keyboard focus pauses motion; pointer-induced focus must not prevent
+    // mouseleave/touchend from resuming a view the user did not manually pause.
+    const keyboardFocus = focused && (section.contains(focused) || panel.contains(focused)) && focused.matches(':focus-visible');
+    return hoverRoots.size > 0 || interacting || keyboardFocus;
+  }
+  function invalidate(settle = false) {
+    dirty = true;
+    if (settle && !reducedMotion.matches) settleUntil = performance.now() + 500;
+    updateActivity();
   }
   function showStatus(message, failed = false) {
     status.hidden = !message;
@@ -100,35 +145,56 @@ function initialiseGallery(section) {
     camera.lookAt(controls.target);
     controls.update();
     updateZoom();
+    invalidate();
   }
   function resize() {
     if (!renderer) return;
     // CSS atlas zoom must not shrink the backing buffer or alter camera geometry.
     const width = stage.clientWidth, height = stage.clientHeight;
     if (width < 1 || height < 1) return;
+    if (width === renderWidth && height === renderHeight) return;
+    renderWidth = width; renderHeight = height;
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     if (Math.abs(camera.aspect - aspect) > .001) { aspect = camera.aspect; fitCamera(true); }
+    invalidate();
   }
   function atlasPaperActive() {
     const state = document.documentElement.dataset;
     return state.atlasMode !== 'space' || (state.atlasZone === 'paper' && state.atlasMoving !== 'true');
   }
   function isActive() {
-    return !document.hidden && !contextLost && (dialog.open || (inView && atlasPaperActive()));
+    return !document.hidden && !contextLost && (dialog.open || (!document.querySelector('dialog[open]') && inView && atlasPaperActive()));
   }
-  function animate() {
+  function animate(now) {
     frameId = 0;
-    if (!renderer || !isActive()) return;
-    controls.update();
-    renderer.render(scene, camera);
-    frameId = requestAnimationFrame(animate);
+    if (!renderer || !isActive()) { lastFrameTime = null; return; }
+    const delta = lastFrameTime === null ? 0 : Math.max(0, Math.min((now - lastFrameTime) / 1000, .1));
+    lastFrameTime = now;
+    const canMove = !reducedMotion.matches && !interactionPaused() && !loadingModel && models.length > 0;
+    const orbit = canMove && spinning;
+    const browse = canMove && browsing && !dialog.open && cards.length > 1;
+    if (orbit) {
+      orbitOffset.copy(camera.position).sub(controls.target).applyAxisAngle(camera.up, -orbitStep(delta, speed));
+      camera.position.copy(controls.target).add(orbitOffset);
+    }
+    const progress = advanceBrowse(browseElapsed, delta, browse, speed);
+    browseElapsed = progress.elapsed;
+    if (progress.advance) selectExample((index + 1) % cards.length);
+    const settling = now < settleUntil;
+    if (orbit || dirty || settling) {
+      controls.update(delta);
+      renderer.render(scene, camera);
+      dirty = false;
+    }
+    if ((orbit || browse || settling) && !frameId) frameId = requestAnimationFrame(animate);
+    else if (!frameId) lastFrameTime = null;
   }
   function updateActivity() {
     if (!isActive()) {
       cancelAnimationFrame(frameId);
-      frameId = 0;
+      frameId = 0; lastFrameTime = null;
     } else if (renderer && !frameId) frameId = requestAnimationFrame(animate);
   }
   function prepareRenderer() {
@@ -140,17 +206,20 @@ function initialiseGallery(section) {
       renderer.domElement.setAttribute('aria-hidden', 'true');
       stage.append(renderer.domElement);
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xf9f6f1);
+      scene.background = new THREE.Color(0xffffff);
       camera = new THREE.PerspectiveCamera(35, 1, .01, 100);
       camera.position.copy(initialDirection).multiplyScalar(5);
-      scene.add(new THREE.HemisphereLight(0xffffff, 0x71809a, 2.8));
+      scene.add(new THREE.HemisphereLight(0xffffff, 0xafa4be, 2.8));
       const key = new THREE.DirectionalLight(0xffffff, 2.6); key.position.set(3, 5, 4); scene.add(key);
       const fill = new THREE.DirectionalLight(0xffffff, 1.1); fill.position.set(-4, 1, -3); scene.add(fill);
       controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true; controls.dampingFactor = .08; controls.enablePan = false;
-      controls.zoomSpeed = .8; controls.autoRotateSpeed = 1;
-      controls.addEventListener('start', () => setSpin(false));
-      controls.addEventListener('change', updateZoom);
+      controls.enableDamping = !reducedMotion.matches; controls.dampingFactor = .08; controls.enablePan = false;
+      controls.zoomSpeed = .8; controls.autoRotate = false;
+      controls.enableZoom = dialog.open;
+      renderer.domElement.style.touchAction = stage.style.touchAction = dialog.open ? 'none' : 'pan-y';
+      controls.addEventListener('start', () => { interacting = true; invalidate(); });
+      controls.addEventListener('end', () => { interacting = false; invalidate(true); });
+      controls.addEventListener('change', () => { updateZoom(); invalidate(); });
       renderer.domElement.addEventListener('webglcontextlost', event => {
         event.preventDefault(); contextLost = true; updateActivity();
         showStatus('3D graphics paused. Waiting for the browser to restore this view…');
@@ -158,7 +227,7 @@ function initialiseGallery(section) {
       renderer.domElement.addEventListener('webglcontextrestored', () => {
         contextLost = false; if (models.length) showStatus(''); updateActivity();
       });
-      setSpin(false);
+      setSpin(spinning);
       resize();
       return true;
     } catch (error) {
@@ -180,6 +249,7 @@ function initialiseGallery(section) {
     if (!prepareRenderer()) return;
     const id = ++requestId;
     const card = cards[index];
+    loadingModel = true; browseElapsed = 0;
     const name = card.dataset.name;
     const kinds = ['baseline', 'ours'].filter(kind => card.dataset[kind]);
     showStatus('Loading ' + name + ' meshes…');
@@ -191,6 +261,7 @@ function initialiseGallery(section) {
     clearTimeout(timeout);
     if (id !== requestId) { results.forEach(result => { if (result.status === 'fulfilled') disposeModel(result.value.scene); }); return; }
     if (results.some(result => result.status === 'rejected')) {
+      loadingModel = false;
       results.forEach(result => { if (result.status === 'fulfilled') disposeModel(result.value.scene); });
       showStatus(name + ' could not be loaded. Please retry or select another example.', true);
       return;
@@ -223,19 +294,21 @@ function initialiseGallery(section) {
         group.scale.setScalar(layout[i].scale); group.position.set(...layout[i].offset);
         models.push({ kind: model.kind, group }); scene.add(group);
       });
-      updateMethodUI(); fitCamera(); resize(); showStatus('');
+      loadingModel = false; updateMethodUI(); fitCamera(); resize(); showStatus('');
       panel.dataset.loaded = card.dataset.example;
       panel.dataset.loadedModels = kinds.join(',');
-      updateActivity();
+      invalidate();
     } catch (error) {
       console.error('Interactive mesh preparation failed', error);
       for (const model of models) scene.remove(model.group);
       results.forEach(result => disposeModel(result.value.scene));
       models = [];
+      loadingModel = false;
       showStatus(name + ' could not be displayed. Please retry.', true);
     }
   }
   function selectExample(next, focus = false) {
+    browseElapsed = 0;
     index = Math.max(0, Math.min(cards.length - 1, next));
     const card = cards[index];
     cards.forEach((item, i) => { item.setAttribute('aria-selected', String(i === index)); item.tabIndex = i === index ? 0 : -1; });
@@ -246,7 +319,7 @@ function initialiseGallery(section) {
     panel.querySelector('[data-inspect-note]').textContent = card.dataset.note;
     stage.setAttribute('aria-label', card.dataset.name + ' interactive model comparison. Drag to orbit, plus or minus to zoom, R to reset.');
     method = card.dataset.baseline ? 'both' : 'ours';
-    setSpin(false); updateMethodUI();
+    updateMethodUI();
     // Scroll only the horizontal strip, never move the page to an off-screen tab.
     const left = card.offsetLeft - track.offsetLeft;
     const target = left - (track.clientWidth - card.offsetWidth) / 2;
@@ -263,22 +336,24 @@ function initialiseGallery(section) {
     event.preventDefault(); selectExample(targets[event.key], true);
   });
   methodButtons.forEach(button => button.addEventListener('click', () => {
-    method = button.dataset.inspectMethod; setSpin(false); updateMethodUI(); fitCamera();
+    method = button.dataset.inspectMethod; browseElapsed = 0; updateMethodUI(); fitCamera();
   }));
-  spinButton.addEventListener('click', () => { if (controls) setSpin(!controls.autoRotate); });
-  panel.querySelector('[data-inspect-reset]').addEventListener('click', () => { setSpin(false); fitCamera(); });
+  spinButton.addEventListener('click', () => setSpin(!spinning));
+  browseButton.addEventListener('click', () => { browsing = !browsing; browseElapsed = 0; updateMotionUI(); updateActivity(); });
+  speedSelect.addEventListener('change', () => { const value = Number(speedSelect.value); if ([.5, 1, 2].includes(value)) speed = value; updateActivity(); });
+  panel.querySelector('[data-inspect-reset]').addEventListener('click', () => { browseElapsed = 0; fitCamera(); });
   retryButton.addEventListener('click', loadExample);
   function zoom(factor) {
     if (!camera || !models.length) return;
     const direction = camera.position.clone().sub(controls.target);
     direction.setLength(THREE.MathUtils.clamp(direction.length() * factor, controls.minDistance, controls.maxDistance));
-    camera.position.copy(controls.target).add(direction); controls.update(); updateZoom();
+    camera.position.copy(controls.target).add(direction); controls.update(); updateZoom(); invalidate();
   }
   panel.querySelectorAll('[data-inspect-zoom]').forEach(button => button.addEventListener('click', () => zoom(button.dataset.inspectZoom === 'in' ? 1 / 1.2 : 1.2)));
   stage.addEventListener('keydown', event => {
     if (event.key === '+' || event.key === '=') { event.preventDefault(); zoom(1 / 1.2); }
     if (event.key === '-' || event.key === '_') { event.preventDefault(); zoom(1.2); }
-    if (event.key.toLowerCase() === 'r') { event.preventDefault(); setSpin(false); fitCamera(); }
+    if (event.key.toLowerCase() === 'r') { event.preventDefault(); fitCamera(); }
   });
   expandButton.addEventListener('click', () => {
     if (dialog.open) { dialog.close(); return; }
@@ -286,7 +361,10 @@ function initialiseGallery(section) {
     placeholder = document.createElement('div'); placeholder.style.height = panel.offsetHeight + 'px';
     panel.replaceWith(placeholder); dialog.querySelector('[data-inspect-dialog-content]').append(panel);
     panel.classList.add('in-dialog'); expandButton.textContent = '↙ Return to page';
-    document.body.classList.add('inspection-dialog-open'); dialog.showModal(); resize(); updateActivity();
+    document.body.classList.add('inspection-dialog-open'); dialog.showModal();
+    if (controls) controls.enableZoom = true;
+    if (renderer) renderer.domElement.style.touchAction = stage.style.touchAction = 'none';
+    hoverRoots.clear(); if (panel.matches(':hover')) hoverRoots.add(panel); resize(); invalidate();
   });
   dialog.querySelector('[data-inspect-close]').addEventListener('click', () => dialog.close());
   dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
@@ -294,20 +372,39 @@ function initialiseGallery(section) {
     if (!placeholder) return;
     placeholder.replaceWith(panel); placeholder = null; panel.classList.remove('in-dialog');
     expandButton.textContent = '⤢ Larger view'; document.body.classList.remove('inspection-dialog-open');
-    resize(); updateActivity(); expandButton.focus({ preventScroll: true });
+    if (controls) controls.enableZoom = false;
+    if (renderer) renderer.domElement.style.touchAction = stage.style.touchAction = 'pan-y';
+    hoverRoots.clear();
+    if (section.matches(':hover')) hoverRoots.add(section);
+    if (panel.matches(':hover')) hoverRoots.add(panel);
+    browseElapsed = 0; resize(); invalidate(); expandButton.focus({ preventScroll: true });
   });
+  for (const root of [section, panel]) {
+    root.addEventListener('pointerenter', event => { if (event.pointerType !== 'touch') hoverRoots.add(root); updateActivity(); });
+    root.addEventListener('pointerleave', () => { hoverRoots.delete(root); updateActivity(); });
+    root.addEventListener('pointerdown', () => { interacting = true; updateActivity(); });
+    root.addEventListener('focusin', updateActivity);
+    root.addEventListener('focusout', () => queueMicrotask(updateActivity));
+  }
+  window.addEventListener('pointerup', () => { interacting = false; invalidate(true); });
+  window.addEventListener('pointercancel', () => { interacting = false; invalidate(); });
   new ResizeObserver(resize).observe(stage);
   new IntersectionObserver(entries => {
     inView = entries[0].isIntersecting;
     if (isActive() && !renderer) loadExample();
     updateActivity();
-  }, { rootMargin: '150px' }).observe(stage);
+  }, { threshold: .01 }).observe(stage);
   document.addEventListener('physrl3d:atlas-zone', () => {
     if (isActive() && !renderer) loadExample();
     resize(); updateActivity();
   });
   document.addEventListener('visibilitychange', updateActivity);
-  reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) setSpin(false); });
+  document.addEventListener('close', updateActivity, true);
+  reducedMotion.addEventListener('change', () => {
+    if (controls) controls.enableDamping = !reducedMotion.matches;
+    settleUntil = 0; lastFrameTime = null; updateMotionUI(); invalidate();
+  });
+  setSpin(spinning); updateMotionUI();
 }
 
 const gallery = document.querySelector('.inspection-gallery');
