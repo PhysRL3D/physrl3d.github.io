@@ -5,7 +5,7 @@ import {viewInsets,fitScene} from './spatial-layout.mjs?v=20261119showcase1';
 import {SWEEP_START,SWEEP_END,WEIGH_TIME,RELEASE_TIME,massSummary,sweepPose,smooth} from './support-weighing.mjs';
 import {STANDING_DURATION,validateStandingData,sampleStanding} from './standing-test.mjs?v=20261119standing1';
 import {buildSliceIndex,sliceHeight,intersectSlice} from './mesh-slice.mjs?v=20261119slice1';
-import {showcaseTimeline,playbackSpeed,nextExampleIndex,displayPositions,COMPARE_SECONDS,ORBIT_RADIANS_PER_SECOND} from './showcase-timeline.mjs?v=20261119showcase1';
+import {showcaseTimeline,playbackSpeed,nextExampleIndex,displayPositions,COMPARE_SECONDS,ORBIT_RADIANS_PER_SECOND} from './showcase-timeline.mjs?v=20261119merge1';
 
 const ROOT='static/physics-20261118/';
 const STANDING_ROOT='static/standing-20261119/';
@@ -47,6 +47,7 @@ let reduced=motionPreference.matches;
  const groups=[],bodies=[];let selected=oursOnly?null:'chair',ready=false,simulationReady=false,time=0,playing=false,inView=false,contextLost=false,duration=RELEASE;
  let action=host.dataset.requestedAction||(oursOnly?'sequence':'supports'),showcaseTime=0,showcaseState=null,speed=1,browseEnabled=!oursOnly,browseTime=0,hovered=false,gesture=false,gestureUntil=0;
  let lastShowcasePhase='',lastSelection='',lastUIUpdate=0,displayYaw=0,explicitPlayback=false;
+ let spinEnabled=true,visibleMethod='both',fittedDistance=1;
  host.querySelectorAll('[data-showcase-browse]').forEach(button=>{button.hidden=oursOnly;});
  if(!oursOnly){const overview=host.querySelector('[data-physics-overview]');overview.textContent='⊞ Reset view';overview.setAttribute('aria-label','Reset pair view');}
  const physicsEnabled=host.dataset.physicsEnabled==='true';
@@ -106,7 +107,9 @@ let reduced=motionPreference.matches;
    insets.top=Math.max(insets.top,(title.bottom-rect.top)/scaleY+12);
    if(group&&!mobileLayout)insets.left=Math.max(insets.left,(input.getBoundingClientRect().right-rect.left)/scaleX+16);
    labelSafeArea=insets;
-   const fitted=fitScene(centres,width,height,insets,oursOnly?{halfWidth:85,front:95,back:105,height:115}:undefined);
+   const singleInspect=sceneMode==='inspect'&&visibleMethod!=='both';
+   const fitted=fitScene(centres,width,height,insets,oursOnly||singleInspect?{halfWidth:85,front:95,back:105,height:115}:undefined);
+   fittedDistance=fitted.distance;
    viewGoal={x:fitted.offsetX,y:fitted.offsetY};
    cameraGoal=new THREE.Vector3(...fitted.position);targetGoal=new THREE.Vector3(...fitted.target);
    if(!instant&&!reduced)last=performance.now();
@@ -178,10 +181,24 @@ let reduced=motionPreference.matches;
    sliceHeights.textContent=selected?descriptions.join(' · ')+' · measured above each model’s bottom':`${descriptions.length} visible meshes · ${Math.round(sliceFraction*100)}% of each mesh’s height retained. Select an example for measurements.`;
    sliceDirty=false;updateSliceControls();
  }
+ function syncInspectVisibility(){
+   const inspect=sceneMode==='inspect';
+   floor.visible=!inspect;
+   controls.maxPolarAngle=inspect?Math.PI:Math.PI*.49;
+   for(const g of groups){g.pad.visible=g.edge.visible=!inspect;if(g.divider)g.divider.visible=!inspect;}
+   for(const entry of bodies){
+     entry.offset.visible=!inspect||visibleMethod==='both'||entry.method===visibleMethod;
+     entry.offset.position.x=inspect&&visibleMethod!=='both'?0:entry.baseX;
+   }
+   host.querySelectorAll('[data-showcase-method]').forEach(button=>{
+     button.setAttribute('aria-pressed',String(button.dataset.showcaseMethod===visibleMethod));
+     button.disabled=!ready||!bodies.some(entry=>(!selected||entry.g.id===selected)&&(button.dataset.showcaseMethod==='both'||entry.method===button.dataset.showcaseMethod));
+   });
+ }
  function setMode(next){
-   if(!['home','slice','standing'].includes(next))return;
+   if(!['home','slice','standing','inspect'].includes(next))return;
    pendingMode=next;host.dataset.requestedMode=next;if(!ready)return;
-   if(sceneMode===next){resize();fit(selected,true);schedule();return;}
+   if(sceneMode===next){syncInspectVisibility();resize();fit(selected,true);schedule();return;}
    if(sceneMode==='slice'){
      sliceAuto=false;sliceDirty=false;for(const entry of bodies)releaseSlice(entry);renderer.localClippingEnabled=false;
      if(savedSliceState){time=savedSliceState.time;playing=savedSliceState.playing&&!reduced;selected=savedSliceState.selected;savedSliceState=null;}
@@ -195,6 +212,7 @@ let reduced=motionPreference.matches;
      if(next==='standing'){playing=false;time=RELEASE;if(!oursOnly)selected=selected||'chair';}
      for(const entry of bodies)applyBody(entry,time);renderedTime=time;
    }
+   syncInspectVisibility();
    sliceButton.textContent=next==='slice'?'Exit slice':'Slice';sliceButton.setAttribute('aria-pressed',String(next==='slice'));
    syncMethodLabels();updateUI();updateSliceControls();resize();fit(selected,reduced);last=performance.now();schedule();
    host.dispatchEvent(new CustomEvent('physrl3d:modechange',{detail:{mode:next,selected},bubbles:true}));
@@ -220,10 +238,10 @@ let reduced=motionPreference.matches;
    const root=new THREE.Group();root.position.set(x,y,0);scene.add(root);
    const pad=new THREE.Mesh(new THREE.BoxGeometry(oursOnly?150:296,oursOnly?170:224,4),new THREE.MeshStandardMaterial({color:0xe6e4eb,roughness:.85}));pad.position.set(0,-2,-2.1);root.add(pad);
    const edge=new THREE.LineSegments(new THREE.EdgesGeometry(pad.geometry),new THREE.LineBasicMaterial({color:0xbcb4c7,transparent:true,opacity:.7}));edge.position.copy(pad.position);root.add(edge);
-   if(!oursOnly&&id!=='penguin'){const divider=new THREE.Mesh(new THREE.BoxGeometry(.7,210,.15),new THREE.MeshBasicMaterial({color:0xd0c9d8}));divider.position.set(0,-2,.03);root.add(divider);}
+   let divider=null;if(!oursOnly&&id!=='penguin'){divider=new THREE.Mesh(new THREE.BoxGeometry(.7,210,.15),new THREE.MeshBasicMaterial({color:0xd0c9d8}));divider.position.set(0,-2,.03);root.add(divider);}
    const label=document.createElement('button');label.type='button';label.className='physics-pair-label';label.innerHTML=`<img src="${inputSource(id)}" alt=""><span><b>${name}</b><small>${oursOnly||id==='penguin'?'PhysRL3D · SAS':'TRELLIS.2 / PhysRL3D'}</small></span>`;label.setAttribute('aria-label',`Focus ${name}`);labels.append(label);label.addEventListener('click',()=>selectExample(id));
    const button=document.createElement('button');button.type='button';button.setAttribute('aria-pressed','false');button.setAttribute('aria-label',`${oursOnly?'Inspect':'Compare'} ${name}`);button.innerHTML=`<img src="${inputSource(id)}" alt=""><span><b>${name}</b><small>${oursOnly||id==='penguin'?'SAS only':'Compare pair'}</small></span>`;picker.append(button);button.addEventListener('click',()=>selectExample(id));
-   groups.push({id,name,root,label,button,x,y});
+   groups.push({id,name,root,label,button,x,y,pad,edge,divider});
  }
  resize();fit(selected,true);schedule();
 
@@ -277,7 +295,7 @@ let reduced=motionPreference.matches;
    const weightLabel=document.createElement('div');weightLabel.className='support-weight-label';weightLabel.innerHTML='<b>— g</b><span>Awaiting supports</span><small>Slicer estimate</small>';labels.append(weightLabel);
    const leader=document.createElement('div'),weightLeader=document.createElement('div');
    for(const line of [leader,weightLeader]){line.className='physics-label-leader';line.hidden=true;labels.prepend(line);}
-   const entry={key,g,method,offset,body,chunks,motion,physics,label,meta,weight,weightLabel,leader,weightLeader,scale,sweeper,displayOnly,
+   const entry={key,g,method,offset,baseX:offset.position.x,body,chunks,motion,physics,label,meta,weight,weightLabel,leader,weightLeader,scale,sweeper,displayOnly,
      tiltLabel:label.querySelector('[data-standing-tilt]'),stateLabel:label.querySelector('[data-standing-state]'),standingFrame:null};bodies.push(entry);
    applyBody(entry,0);return entry;
  }
@@ -289,6 +307,14 @@ let reduced=motionPreference.matches;
    return sampled;
  }
  function applyBody(entry,t){
+   if(sceneMode==='inspect'){
+     // Pure geometry inspection never samples or implies a physical trajectory.
+     entry.body.visible=true;entry.body.position.set(0,0,0);entry.body.quaternion.identity();
+     entry.chunks.forEach(chunk=>chunk.visible=false);entry.scale.visible=entry.sweeper.visible=false;
+     entry.weightLabel.hidden=true;entry.standingFrame=null;
+     entry.label.title='Display geometry only; drag to inspect. This is not a standing test.';
+     return;
+   }
    const standing=physicsSample(entry,Math.max(0,t-RELEASE));
    entry.body.visible=true;
    const framePos=clamp(Math.min(t,SWEEP_START)*24,0,143),a=Math.floor(framePos),b=Math.min(143,a+1),alpha=framePos-a;
@@ -317,7 +343,7 @@ let reduced=motionPreference.matches;
  }
  function updateUI(){
    const state=showcaseState||showcaseTimeline(showcaseTime,{action,hasReplay:false}),seconds=state.replayTime;
-   const names={supports:time<.9?'Supports attached':time<SWEEP_START?'Supports break apart':'Collecting sliced supports',weight:'Slicer-estimated support weight & share',slice:'Top-to-bottom display-mesh cutaway',standing:'Validated precomputed standing replay',unavailable:'Standing replay unavailable · not simulated','supports-unavailable':'Original display mesh · support and weight data unavailable'};
+   const names={inspect:'Interactive geometry · not a simulation',supports:time<.9?'Supports attached':time<SWEEP_START?'Supports break apart':'Collecting sliced supports',weight:'Slicer-estimated support weight & share',slice:'Top-to-bottom display-mesh cutaway',standing:'Validated precomputed standing replay',unavailable:'Standing replay unavailable · not simulated','supports-unavailable':'Original display mesh · support and weight data unavailable'};
    phase.textContent=ready?(selected&&!selectedBodies().length?'This model could not load · no substitute is shown':names[state.phase]):'Loading 3D examples';
    const timed=state.phase==='standing'||state.phase==='slice';
    clock.textContent=state.phase==='standing'?`${seconds.toFixed(1)} / 10.0 s`:state.phase==='slice'?`${state.localTime.toFixed(1)} / 9.0 s`:'—';
@@ -331,13 +357,17 @@ let reduced=motionPreference.matches;
    host.querySelectorAll('[data-support-stage]').forEach(button=>button.setAttribute('aria-pressed',String(action==='supports'&&Math.abs(Number(button.dataset.supportStage)-time)<.9)));
    host.querySelectorAll('[data-standing-stage]').forEach(button=>{button.disabled=!ready;button.setAttribute('aria-pressed',String(action==='standing'));});
    host.querySelectorAll('[data-showcase-browse]').forEach(button=>{button.textContent=browseEnabled?'Pause browse':'Resume browse';button.setAttribute('aria-pressed',String(browseEnabled));});
+   host.querySelectorAll('[data-showcase-spin]').forEach(button=>{button.textContent=spinEnabled?'Pause rotation':'Resume rotation';button.setAttribute('aria-pressed',String(spinEnabled));button.disabled=!ready||reduced||sceneMode==='standing';});
+   host.querySelectorAll('[data-showcase-reset]').forEach(button=>{button.disabled=!ready;});
+   host.querySelectorAll('[data-showcase-zoom]').forEach(output=>{output.textContent=`${Math.round(100*fittedDistance/Math.max(.001,camera.position.distanceTo(controls.target)))}%`;});
    updateStandingDetail();updateSliceControls();
  }
  function updateStandingDetail(force=false){
    if(!standingDetail)return;
-   const stateKey=`${selected}-${Math.floor(time*5)}-${ready}`;
+   const stateKey=`${sceneMode}-${selected}-${Math.floor(time*5)}-${ready}`;
    if(!force&&standingDetailKey===stateKey)return;standingDetailKey=stateKey;
    standingDetail.replaceChildren();
+   if(sceneMode==='inspect'){standingDetail.textContent='Geometry inspection only. No standing trajectory is sampled in this mode.';return;}
    const scoped=selected?bodies.filter(entry=>entry.g.id===selected):bodies;
    if(!scoped.length){standingDetail.textContent=ready?'No model or validated replay could be loaded for this example.':'Loading rigid-body replay data.';return;}
    for(const entry of scoped){
@@ -364,17 +394,21 @@ let reduced=motionPreference.matches;
      else card.textContent='Weight data unavailable';detail.append(card);
    }
  }
- function selectedBodies(){return selected?bodies.filter(entry=>entry.g.id===selected):bodies;}
+ function selectedBodies(){return bodies.filter(entry=>(!selected||entry.g.id===selected)&&(sceneMode!=='inspect'||visibleMethod==='both'||entry.method===visibleMethod));}
  function emitSelection(){
    host.dispatchEvent(new CustomEvent('physrl3d:selection',{detail:{showcase:host.dataset.showcase,example:selected,methods:[...new Set(selectedBodies().map(entry=>entry.method))],displayOnly:DISPLAY_ONLY.has(selected)},bubbles:true}));
  }
  function selectExample(id=null){
+   if(id&&visibleMethod!=='both'&&!bodies.some(entry=>entry.g.id===id&&entry.method===visibleMethod))visibleMethod='both';
    fit(id);
+   syncInspectVisibility();
    if(ready){applyShowcase(true);if(sceneMode==='slice')applySlice();else for(const entry of bodies)applyBody(entry,time);updateUI();}
    last=performance.now();schedule();
  }
  function applyShowcase(force=false){
-   const members=selectedBodies();
+   // Inspection visibility is presentation-only, not a filter on evidence in
+   // the next mode (including a paused transition into a standing replay).
+   const members=bodies.filter(entry=>!selected||entry.g.id===selected);
    showcaseState=showcaseTimeline(showcaseTime,{action,hasReplay:members.some(entry=>entry.physics.status==='ready'),supportAvailable:members.some(entry=>!entry.displayOnly),releaseTime:RELEASE});
    duration=showcaseState.total;
    if(force||lastShowcasePhase!==showcaseState.phase){
@@ -392,7 +426,7 @@ let reduced=motionPreference.matches;
      host.dispatchEvent(new CustomEvent('physrl3d:media',{detail:{showcase:host.dataset.showcase,example:selected,action:next},bubbles:true}));
      updateUI();schedule();return;
    }
-   if(!['sequence','supports','slice','weight','standing'].includes(next))return;
+   if(!['sequence','supports','slice','weight','standing','inspect'].includes(next))return;
    action=next;host.dataset.requestedAction=next;showcaseTime=elapsed;lastShowcasePhase='';playing=autoplay;explicitPlayback=manual&&autoplay;sliceAuto=false;
    if(ready){applyShowcase(true);if(sceneMode==='slice')applySlice();else for(const entry of bodies)applyBody(entry,time);}
    last=performance.now();updateUI();schedule();
@@ -411,6 +445,16 @@ let reduced=motionPreference.matches;
    return host.dataset.mediaOpen==='true'||gesture||now<gestureUntil||(!explicitPlayback&&automaticPaused(now));
  }
  host.querySelectorAll('[data-showcase-action]').forEach(button=>button.addEventListener('click',()=>setAction(button.dataset.showcaseAction,{manual:true})));
+ host.querySelectorAll('[data-showcase-spin]').forEach(button=>button.addEventListener('click',()=>{spinEnabled=!spinEnabled;last=performance.now();updateUI();schedule();}));
+ function resetView(){displayYaw=0;for(const entry of bodies)entry.offset.rotation.z=0;fit(selected);schedule();}
+ host.querySelectorAll('[data-showcase-reset]').forEach(button=>button.addEventListener('click',resetView));
+ host.querySelectorAll('[data-showcase-method]').forEach(button=>button.addEventListener('click',()=>{visibleMethod=button.dataset.showcaseMethod;syncInspectVisibility();fit(selected);emitSelection();schedule();}));
+ picker.addEventListener('keydown',event=>{
+   if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+   const index=groups.findIndex(g=>g.button===event.target);if(index<0)return;event.preventDefault();
+   const next=event.key==='Home'?0:event.key==='End'?groups.length-1:nextExampleIndex(index,event.key==='ArrowLeft'?-1:1,groups.length);
+   selectExample(groups[next].id);groups[next].button.focus({preventScroll:true});groups[next].button.scrollIntoView({block:'nearest',inline:'nearest',behavior:reduced?'instant':'smooth'});
+ });
  host.querySelectorAll('[data-showcase-speed]').forEach(select=>select.addEventListener('change',()=>{speed=playbackSpeed(select.value);host.dataset.showcaseSpeed=String(speed);last=performance.now();schedule();}));
  host.querySelectorAll('[data-showcase-browse]').forEach(button=>button.addEventListener('click',()=>{browseEnabled=!browseEnabled;browseTime=0;updateUI();last=performance.now();schedule();}));
  host.querySelectorAll('[data-showcase-prev]').forEach(button=>button.addEventListener('click',()=>browseStep(-1)));
@@ -430,7 +474,7 @@ let reduced=motionPreference.matches;
    if(selected)for(const e of bodies.filter(e=>e.g.id===selected))for(const label of [e.label,e.weightLabel])labelSizes.set(label,{w:label.offsetWidth||130,h:label.offsetHeight||42});
    function place(label,point,visible){p.copy(point).project(camera);label.hidden=!visible||p.z>1||p.z< -1||Math.abs(p.x)>1.2||Math.abs(p.y)>1.2;label.style.left=`${(p.x*.5+.5)*w}px`;label.style.top=`${(-p.y*.5+.5)*h}px`;}
    for(const g of groups)place(g.label,new THREE.Vector3(g.x,g.y+(oursOnly?92:112),24),g.root.visible&&!selected);
-   for(const e of bodies){e.leader.hidden=e.weightLeader.hidden=true;const focused=e.g.id===selected;place(e.label,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-(focused?130:41),focused?-5:10),e.g.root.visible&&(!selected||focused));place(e.weightLabel,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-(oursOnly?90:105),8),!e.displayOnly&&e.g.root.visible&&sceneMode!=='slice'&&(focused||oursOnly&&!selected&&showcaseState?.phase==='weight')&&time<RELEASE);}
+   for(const e of bodies){e.leader.hidden=e.weightLeader.hidden=true;const focused=e.g.id===selected;place(e.label,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-(focused?130:41),focused?-5:10),e.offset.visible&&e.g.root.visible&&(!selected||focused));place(e.weightLabel,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-(oursOnly?90:105),8),!e.displayOnly&&e.offset.visible&&e.g.root.visible&&sceneMode!=='slice'&&sceneMode!=='inspect'&&(focused||oursOnly&&!selected&&showcaseState?.phase==='weight')&&time<RELEASE);}
    // Keep labels readable at oblique angles and extreme zoom. Short leader lines
    // preserve the connection to each original projected model or scale position.
    if(selected){
@@ -462,7 +506,8 @@ let reduced=motionPreference.matches;
    const auto=playing&&!reduced&&!automaticPaused(now);
    if(auto&&!oursOnly&&browseEnabled){browseTime+=dt;const interval=action==='sequence'?Math.max(COMPARE_SECONDS,duration):COMPARE_SECONDS;if(browseTime>=interval)browseStep(1);}
    if(cameraGoal){const ease=1-Math.exp(-12*dt);camera.position.lerp(cameraGoal,ease);controls.target.lerp(targetGoal,ease);if(viewGoal){const v=camera.view||{offsetX:0,offsetY:0};camera.setViewOffset(stage.clientWidth,stage.clientHeight,THREE.MathUtils.lerp(v.offsetX,viewGoal.x,ease),THREE.MathUtils.lerp(v.offsetY,viewGoal.y,ease),stage.clientWidth,stage.clientHeight);}if(camera.position.distanceTo(cameraGoal)<.15){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;settleView();}}
-   if(auto&&sceneMode!=='standing'){
+   const rotating=spinEnabled&&(playing||sceneMode==='inspect')&&!reduced&&!automaticPaused(now)&&sceneMode!=='standing';
+   if(rotating){
      // Rotate presentation wrappers in their fixed slots, never replay bodies.
      // Z-yaw preserves the world-horizontal slice plane. Freeze it for replay.
      displayYaw=(displayYaw+ORBIT_RADIANS_PER_SECOND*dt*speed)%(Math.PI*2);
@@ -474,7 +519,7 @@ let reduced=motionPreference.matches;
    controls.update();projectLabels();renderer.render(scene,camera);
    // OrbitControls' change event schedules damping frames. Paused, untouched
    // scenes should not compete with the document's transform animation.
-   if((playing&&!mediaOpen&&(!timelinePaused(now)||now<gestureUntil))||sliceAuto||cameraGoal||sliceDirty)schedule();
+   if((playing&&!mediaOpen&&(!timelinePaused(now)||now<gestureUntil))||rotating||sliceAuto||cameraGoal||sliceDirty)schedule();
  }
  function active(){const modal=document.querySelector('dialog[open]');return (!modal||modal===dialog)&&(dialog.open||(inView&&host.dataset.atlasActive!=='false'))&&!document.hidden&&!contextLost;}
  function schedule(){if(!frame&&active())frame=requestAnimationFrame(tick);}
@@ -487,7 +532,7 @@ let reduced=motionPreference.matches;
  replay.addEventListener('click',()=>setAction(action,{autoplay:true,manual:true}));
  host.querySelector('[data-physics-overview]').addEventListener('click',()=>selectExample());
  host.querySelectorAll('[data-physics-zoom]').forEach(b=>b.addEventListener('click',()=>{const factor=b.dataset.physicsZoom==='in'?.8:1.25;targetGoal=controls.target.clone();const offset=camera.position.clone().sub(targetGoal);offset.setLength(clamp(offset.length()*factor,controls.minDistance,controls.maxDistance));cameraGoal=targetGoal.clone().add(offset);last=performance.now();if(reduced){camera.position.copy(cameraGoal);cameraGoal=targetGoal=null;controls.update();}schedule();}));
- stage.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='r'){e.preventDefault();fit(selected);}if(e.key===' '){e.preventDefault();if(ready)play.click();}});
+ stage.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='r'){e.preventDefault();resetView();}if(e.key===' '){e.preventDefault();if(ready)(sceneMode==='inspect'?host.querySelector('[data-showcase-spin]'):play).click();}if(['+','=','-','_'].includes(e.key)){e.preventDefault();host.querySelector(`[data-physics-zoom="${e.key==='-'||e.key==='_'?'out':'in'}"]`).click();}});
  let down=null;renderer.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
  renderer.domElement.addEventListener('pointerup',e=>{if(sceneMode==='slice'||!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(bodies.filter(b=>b.g.root.visible).map(b=>b.body),true);if(hits[0]?.object.userData.example)selectExample(hits[0].object.userData.example);});
  host.querySelector('[data-physics-expand]').addEventListener('click',e=>{if(dialog.open){dialog.close();return;}returnFocus=e.currentTarget;placeholder=document.createComment('physics viewer');host.replaceWith(placeholder);dialog.querySelector('.physics-dialog-content').append(host);dialog.showModal();controls.enableZoom=true;renderer.domElement.style.touchAction='none';resize();fit(selected,true);schedule();});
@@ -504,7 +549,7 @@ let reduced=motionPreference.matches;
  }
  if(!bodies.length)throw new Error('No display models could be loaded.');
  // Hash navigation may request a different action while model loads await.
- if(['sequence','supports','slice','weight','standing'].includes(host.dataset.requestedAction))action=host.dataset.requestedAction;
+ if(['sequence','supports','slice','weight','standing','inspect'].includes(host.dataset.requestedAction))action=host.dataset.requestedAction;
  ready=true;simulationReady=bodies.some(b=>b.physics.status==='ready');duration=RELEASE+(simulationReady?STANDING_DURATION:0);slider.max=duration;loading.hidden=true;play.disabled=replay.disabled=slider.disabled=false;sliceButton.disabled=false;playing=!reduced;
  host.dataset.replayCount=String(bodies.filter(b=>b.physics.status==='ready').length);
  syncMethodLabels();
