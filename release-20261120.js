@@ -14,7 +14,7 @@
   const menu=document.querySelector('.explore-menu>div');
   menu.insertAdjacentHTML('afterbegin','<a href="#film">Watch the film</a><a href="#more-examples">20 simulation cases</a>');
   const primary=document.querySelector('.topbar .filled');primary.href='#film';primary.textContent='Watch the film';
-  document.querySelectorAll('.brand').forEach(el=>{el.innerHTML='<img src="static/brand/physrl3d-wordmark.svg" alt="PhysRL3D" width="150" height="42">';});
+  document.querySelectorAll('.brand').forEach(el=>{el.innerHTML='<img src="static/brand/physrl3d-lockup.svg?v=20261120loop1" alt="PhysRL3D: 3D, reinforcement learning and physical balance" width="174" height="42">';});
   const title=document.getElementById('support-title');title.innerHTML='<img class="hero-wordmark" src="static/brand/physrl3d-wordmark.svg" alt="PhysRL3D" width="420" height="116">';
   document.querySelectorAll('#citation p').forEach(p=>{if(p.textContent==='Anonymous authors · Under review')p.textContent='PhysRL3D · Research project';});
   document.querySelectorAll('[data-showcase-action="standing"]').forEach(button=>{
