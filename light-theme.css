@@ -1,0 +1,314 @@
+/* Final, colour-only restoration of the original PhysRL3D light identity.
+   Load after atlas-world.css. Geometry, typography, motion and assets stay intact. */
+:root {
+  --ink: #242328;
+  --muted: #625e6c;
+  --line: #dedbe4;
+  --purple: #8460ad;
+  --lavender: #f2edf8;
+  --paper: #ffffff;
+  --light-surface: #ffffff;
+  --light-soft: #f7f7fa;
+  --light-purple-deep: #654186;
+  --light-border-strong: #9b8ba9;
+  --light-blue: #175c9a;
+  --light-teal: #006f77;
+  --light-baseline: #805120;
+  color-scheme: light;
+}
+
+body { background: var(--paper); color: var(--ink); }
+.brand { color: var(--ink); }
+.brand span { color: var(--purple); }
+.topbar {
+  background: #ffffffed;
+  border-color: var(--line);
+  box-shadow: 0 5px 24px #30263c0b;
+}
+.explore-menu > div {
+  background: var(--light-surface);
+  border-color: var(--line);
+  box-shadow: 0 15px 50px #30263c14;
+}
+.explore-menu a:hover { background: var(--lavender); }
+.filled, .primary { color: #ffffff; background: var(--ink); border-color: var(--ink); }
+.secondary { background: var(--lavender); color: var(--light-purple-deep); }
+.hero h1 span, .hero h2 span, .motion-intro h1 span { color: var(--purple); }
+.hero-copy, .paper-title, .review-status, .small-note, .swipe-hint,
+.method-stage p, .sas-summary h3 span, .result-summary em,
+.result-summary div > span:not(.eyebrow), .metric-notes p,
+.questions details > p, .abstract-copy, .citation-section > div > p,
+.bib-heading, footer p, footer small, figcaption,
+.motion-card-footer p, .motion-bottom > p, .motion-scroll-hint, .motion-note,
+.card-footer, .big-results small, .mini-bars, .stage > span, .stage small,
+.archive-toolbar, .archive-note {
+  color: var(--muted);
+}
+.eyebrow, .method-tabs button[aria-selected="true"],
+.questions summary::after, #copy-status { color: var(--purple); }
+.method-tabs button { color: var(--muted); }
+.method-tabs button[aria-selected="true"] { border-bottom-color: var(--purple); }
+.tags span { color: var(--light-purple-deep); border-color: #cfc0df; }
+.method-stage, .results-section, .ivory { background: var(--light-soft); }
+.metric-notes b, .sas-summary b, .ours-row th { color: var(--light-purple-deep); }
+.result-summary b small { color: var(--purple); }
+.ours-row, .lavender { background: var(--lavender); }
+.table-scroll { background: var(--light-surface); border-color: var(--line); }
+caption, thead th { color: var(--muted); }
+thead th { background: var(--light-soft); }
+.dataset-tabs button[aria-selected="true"] {
+  background: var(--light-purple-deep); color: #ffffff; border-color: var(--light-purple-deep);
+}
+pre { background: var(--light-soft); color: var(--muted); border-color: var(--line); }
+.archive-note { background: var(--light-soft); border-color: var(--line); }
+.tradeoff { background: #f7ebdd; color: var(--light-baseline); }
+.badge.bad { background: #f7ebdd; color: var(--light-baseline); }
+.badge.ok { background: #edf3e9; color: #466438; }
+
+/* One white studio, including its overview and document-mode fallback. */
+.atlas-ready { --atlas-ink: #242328; --atlas-night: #ffffff; }
+html[data-atlas-mode="space"] body,
+html[data-atlas-mode="space"] .atlas-viewport { background: #ffffff; }
+html[data-atlas-mode="space"] .atlas-zone {
+  background: var(--light-surface);
+  border-color: var(--line);
+  box-shadow: 0 20px 70px #30263c12;
+}
+html[data-atlas-mode="space"] .atlas-world-label { color: var(--ink); }
+html[data-atlas-mode="space"] .atlas-zone-scroll { background: var(--light-surface); }
+html[data-atlas-mode="space"] body > footer { color: var(--muted); }
+.atlas-station, .atlas-station-poster { background: var(--light-surface); color: var(--ink); }
+.atlas-kicker { color: var(--purple); }
+.atlas-station-copy, .atlas-input-strip figcaption, .atlas-caption { color: var(--muted); }
+.atlas-input-strip img { background: var(--light-soft); }
+.atlas-activate { background: var(--purple); border-color: var(--purple); color: #ffffff; }
+.atlas-station-note, .atlas-home-notes {
+  background: var(--light-surface); color: var(--muted); border-top-color: var(--line);
+}
+.atlas-station-note a { color: var(--light-purple-deep); }
+.atlas-home-notes .weighing-disclosure,
+.atlas-home-notes .physics-protocol { color: var(--muted); }
+html[data-atlas-mode="space"] .atlas-home-notes[open] {
+  background: #fffffff7; box-shadow: 0 -14px 35px #30263c12;
+}
+.atlas-ready :is(.atlas-zone-scroll, .atlas-home-notes) {
+  scrollbar-color: #b2a5c0 #f3f1f6;
+}
+
+/* Navigation stays legible over the white stage, without dark floating bars. */
+.atlas-dock {
+  background: #fffffff2; border-color: var(--line); color: var(--ink);
+  box-shadow: 0 8px 30px #30263c14;
+}
+.atlas-dock button:hover { background: var(--light-soft); }
+.atlas-dock button[aria-current="location"] {
+  background: var(--lavender); color: var(--light-purple-deep);
+}
+.atlas-utility { border-left-color: var(--line); }
+.atlas-utility button { color: var(--muted); }
+.atlas-dock button:focus-visible, .atlas-map-point:focus-visible { outline-color: var(--purple); }
+.atlas-map-wrap, .atlas-scroll-hint { color: var(--muted); }
+.atlas-minimap {
+  background: #fffffff2; border-color: var(--line); box-shadow: 0 4px 18px #30263c0b;
+}
+.atlas-map-point::before { background: #8c8297; }
+.atlas-map-point[aria-current="location"]::before {
+  background: var(--purple); box-shadow: 0 0 0 4px #8460ad22;
+}
+.atlas-map-point:hover span, .atlas-map-point:focus-visible span {
+  color: var(--light-purple-deep); background: var(--lavender);
+}
+
+/* Shared scene host is reparented into Home, Slice, Standing and the dialog. */
+.physics-viewer {
+  --stage: #ffffff; --stage-line: #dedbe4;
+  background: var(--light-surface); color: var(--ink); border-color: var(--line);
+  box-shadow: 0 20px 65px #30263c0d;
+}
+.spatial-gallery, .spatial-gallery .physics-viewer,
+#physics-dialog, #physics-dialog .physics-viewer,
+.physics-stage, .physics-loading { background: var(--light-surface); }
+.physics-stage { border-color: var(--line); }
+.physics-loading { color: var(--muted); }
+.physics-intro h1,
+.spatial-gallery .physics-intro h1,
+#physics-dialog .physics-intro h1 { color: var(--ink); }
+.physics-intro h1 span,
+.spatial-gallery .physics-intro h1 span,
+#physics-dialog .physics-intro h1 span { color: var(--purple); }
+.spatial-gallery .physics-intro .eyebrow,
+#physics-dialog .physics-intro .eyebrow { color: var(--purple); }
+.physics-intro > p,
+.spatial-gallery .physics-intro > p:last-child,
+#physics-dialog .physics-intro > p:last-child { color: var(--muted); }
+.physics-topline { border-top-color: var(--line); }
+.phase-tag, .physics-clock output { color: var(--ink); }
+.physics-clock > span, .physics-clock small, .physics-caption,
+.stage-corner-note, .stage-corner-note span { color: var(--muted); }
+.physics-caption i { background: #8d8996; }
+/* Blue remains reserved for generated support geometry and its measurements. */
+.physics-caption .legend-support { background: #258bdf; }
+
+.pair-input,
+.spatial-gallery .pair-input,
+#physics-dialog .pair-input {
+  background: #fffffff2; border-color: var(--line); box-shadow: 0 10px 32px #30263c12;
+}
+.pair-input-heading, .pair-input p, .pair-input-arrow,
+.pair-method-key small { color: var(--muted); }
+.pair-input h3, .pair-method-key { color: var(--ink); }
+.pair-method-key i { background: #b97a42; }
+.pair-method-key > span + span i { background: var(--purple); }
+.physics-picker { scrollbar-color: #b2a5c0 #f3f1f6; }
+.physics-picker button {
+  background: var(--light-surface); border-color: var(--line); color: var(--ink);
+}
+.physics-picker small { color: var(--muted); }
+.physics-picker button[aria-pressed="true"] {
+  background: var(--lavender); border-color: var(--purple); color: var(--light-purple-deep);
+  box-shadow: 0 3px 12px #8460ad12;
+}
+.physics-picker button[aria-pressed="true"] small { color: var(--light-purple-deep); }
+.spatial-controls {
+  background: #fffffff2; border-color: var(--line); box-shadow: 0 -8px 40px #30263c0f;
+}
+.physics-toolbar button, .weighing-stages button, .mesh-slice-actions button,
+.physics-extra > summary {
+  background: var(--light-surface); border-color: var(--light-border-strong); color: var(--ink);
+}
+.physics-toolbar [data-physics-play] {
+  background: var(--purple); color: #ffffff; border-color: var(--purple);
+}
+.physics-toolbar button[aria-pressed="true"]:not([data-physics-play]),
+.weighing-stages button[aria-pressed="true"],
+.mesh-slice-actions button[aria-pressed="true"],
+.physics-extra[open] > summary {
+  background: var(--lavender); color: var(--light-purple-deep); border-color: var(--purple);
+}
+.physics-scrubber { color: var(--muted); }
+.physics-scrubber input { accent-color: var(--purple); }
+.physics-help, .spatial-footer .physics-help, .spatial-continue { color: var(--muted); }
+.physics-extra-panel {
+  background: #fffffff9; color: var(--ink); border-color: var(--line);
+  box-shadow: 0 15px 55px #30263c22;
+}
+.physics-extra-panel > p { color: var(--muted); }
+.weighing-disclosure, .physics-protocol,
+.spatial-gallery > .weighing-disclosure, .spatial-gallery > .physics-protocol {
+  background: var(--light-surface); color: var(--muted); border-color: var(--line);
+}
+.physics-body-label {
+  background: #fff9f1f5; color: var(--ink); border-color: #b98c60;
+  box-shadow: 0 4px 16px #30263c12;
+}
+.physics-body-label small { color: var(--light-baseline); }
+.physics-body-label.method-sas { background: #f7f2fcf5; border-color: var(--purple); }
+.physics-body-label.method-sas small { color: var(--light-purple-deep); }
+.physics-pair-label, .physics-viewer[data-focus="all"] .physics-pair-label {
+  background: #fffffff5; color: var(--ink); border-color: #bfb3cc;
+  box-shadow: 0 4px 16px #30263c14;
+}
+.physics-pair-label small { color: var(--muted); }
+.physics-label-leader { background: #8d819d99; }
+.support-weight-label, .support-weight-label.is-weighed {
+  background: #f4f9fff5; color: var(--light-blue); border-color: #8cafcf;
+  box-shadow: 0 4px 16px #175c9a12;
+}
+.support-weight-label b, .support-weight-label.is-weighed b,
+.support-weight-label.is-weighed span { color: var(--light-blue); }
+/* Existing .75 opacity is retained; the darker ink remains readable when composited. */
+.support-weight-label small { color: #34303d; }
+.support-mass-detail { color: var(--muted); border-top-color: var(--line); }
+.support-mass-card { background: #f7faff; border-color: #cbdce9; }
+.support-mass-card > span, .support-mass-card > small { color: var(--muted); }
+.support-mass-card strong, .support-mass-card > b { color: var(--light-blue); }
+
+/* Slice contours are teal; this UI does not recolour source meshes or infill. */
+.mesh-slice-heading { color: var(--ink); }
+.mesh-slice-range { color: var(--muted); }
+.mesh-slice-range input { accent-color: var(--light-teal); }
+.mesh-slice-heights { color: var(--light-teal); }
+.mesh-slice-disclosure { color: var(--muted); }
+.physics-viewer[data-scene-mode="slice"] .physics-toolbar [data-physics-slice] {
+  background: #e8f7f7; color: var(--light-teal); border-color: #5a9d9f;
+}
+.physics-viewer[data-scene-mode="slice"] .physics-picker small { color: var(--muted); }
+.physics-viewer[data-scene-mode="slice"] .physics-picker button[aria-pressed="true"] small {
+  color: var(--light-purple-deep);
+}
+.physics-viewer[data-scene-mode="slice"] .physics-body-label { border-color: #b98c60; }
+.physics-viewer[data-scene-mode="slice"] .physics-body-label.method-sas { border-color: var(--purple); }
+
+/* Status colours describe the replay, never imply an unavailable test passed. */
+.physics-body-label .standing-body-readout { color: var(--ink); border-top-color: #c8becf; }
+.standing-body-readout [data-standing-state] { color: var(--muted); }
+.physics-body-label[data-standing-state="rotated"] .standing-body-readout,
+.physics-body-label[data-standing-state="rotated"] [data-standing-state] { color: #885015; }
+.physics-body-label[data-standing-state="unavailable"] .standing-body-readout { color: var(--muted); }
+.standing-detail { color: var(--ink); }
+.standing-detail-card { border-top-color: var(--line); }
+.standing-detail-card small, .standing-disclaimer { color: var(--muted); }
+/* These three declarations override the existing legacy inline badge colours only. */
+.physics-body-label .standing-sensitive-badge {
+  background: #fff0d7 !important;
+  color: #75450e !important;
+  border-color: #b88c4f !important;
+}
+
+#physics-dialog { color: var(--ink); border-color: var(--line); box-shadow: 0 25px 90px #30263c26; }
+.physics-dialog-bar, #physics-dialog .physics-dialog-bar {
+  background: #fffffff2; color: var(--muted); border-bottom-color: var(--line);
+}
+.physics-dialog-bar button { background: var(--light-surface); color: var(--ink); border-color: var(--light-border-strong); }
+#physics-dialog::backdrop, #inspection-dialog::backdrop, #mesh-dialog::backdrop { background: #30263c45; }
+
+/* The independent manual model viewer retains its existing red/blue method key. */
+.inspection-panel, .inspection-stage, .inspection-track > button,
+.mesh-viewer, .viewer-stage, #inspection-dialog, #mesh-dialog {
+  background: var(--light-surface); border-color: var(--line); color: var(--ink);
+}
+.inspection-track > button[aria-selected="true"] {
+  background: var(--lavender); border-color: var(--purple); box-shadow: 0 0 0 1px var(--purple);
+}
+.inspection-status { background: #fffffff2; color: var(--muted); }
+.inspection-methods button[aria-pressed="true"] {
+  background: var(--light-purple-deep); border-color: var(--light-purple-deep); color: #ffffff;
+}
+.inspection-controls [aria-pressed="true"] {
+  background: var(--lavender); border-color: var(--purple); color: var(--light-purple-deep);
+}
+.inspection-note, .inspection-help, .inspection-zoom-controls output, .viewer-status { color: var(--muted); }
+.inspection-gallery .small-note a { color: var(--light-purple-deep); }
+.print-case, #prints .print-case, .print-case-picker button, .motion-card, .motion-card.archive {
+  background: var(--light-soft); border-color: var(--line);
+}
+.print-case-picker button[aria-pressed="true"] {
+  background: var(--lavender); border-color: var(--purple); box-shadow: 0 0 0 1px var(--purple);
+}
+.print-case-picker small, .print-case-number, #prints .note { color: var(--muted); }
+.motion-media { background: #f0f0f3; }
+.motion-method, .motion-time { color: var(--light-purple-deep); background: #fffffff2; }
+.motion-badge { background: #f7ebdd; color: var(--light-baseline); }
+.archive .motion-badge { background: var(--lavender); color: var(--light-purple-deep); }
+.motion-error { background: #fff3f0; color: #884b40; }
+.motion-page-progress { background: var(--purple); }
+button:focus-visible, .physics-stage:focus-visible,
+.inspection-gallery button:focus-visible, #inspection-dialog button:focus-visible,
+.inspection-stage:focus-visible { outline-color: var(--purple); }
+
+/* RAF owns the complete camera trajectory, including the optional overview.
+   A second CSS interpolation would lag behind it and make navigation feel heavy. */
+.atlas-ready .atlas-world,
+html[data-atlas-overview="true"] .atlas-world { transition: none; }
+
+/* During spatial travel, opaque white controls avoid repeated backdrop sampling.
+   Stationary panels regain their restrained shadows and translucency above. */
+html[data-atlas-moving="true"] :is(.topbar, .atlas-dock, .atlas-minimap,
+  .spatial-controls, .pair-input, .physics-extra-panel, .atlas-home-notes) {
+  background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+html[data-atlas-moving="true"] .atlas-zone { box-shadow: none; }
+html[data-atlas-moving="true"] .atlas-home-notes[open] { background: #ffffff; box-shadow: none; }

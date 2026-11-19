@@ -23,27 +23,28 @@ const bin=async url=>{const r=await fetch(url);if(!r.ok)throw Error(`${r.status}
 
 async function initialise(){
  const weightData=await json(ROOT+'support-weights.json');
- const scene=new THREE.Scene();scene.background=new THREE.Color('#172330');
+ const scene=new THREE.Scene();scene.background=new THREE.Color('#ffffff');
  const camera=new THREE.PerspectiveCamera(37,1,.5,10000);camera.up.set(0,0,1);
  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'low-power'});
  renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
- renderer.setClearColor('#172330');stage.prepend(renderer.domElement);
- const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.09;
+ renderer.setClearColor('#ffffff');stage.prepend(renderer.domElement);
+ const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.12;
  controls.enablePan=true;controls.enableZoom=false;controls.minDistance=80;controls.maxDistance=6000;controls.maxPolarAngle=Math.PI*.49;
  // Preserve ordinary page scrolling in the immersive main view. Zoom buttons
  // remain available; the expanded inspector enables pinch/wheel controls.
  renderer.domElement.style.touchAction='pan-y';
- scene.add(new THREE.HemisphereLight(0xe7f0ff,0x26374b,1.6));
+ scene.add(new THREE.HemisphereLight(0xffffff,0xaaa5b2,1.3));
  const key=new THREE.DirectionalLight(0xffffff,1.8);key.position.set(-300,-500,900);scene.add(key);
- const fill=new THREE.DirectionalLight(0x9dcaff,.8);fill.position.set(500,400,500);scene.add(fill);
- const floor=new THREE.Mesh(new THREE.PlaneGeometry(4000,3000),new THREE.MeshStandardMaterial({color:0x152330,roughness:1}));floor.position.z=-5;scene.add(floor);
- const bodyMaterial=new THREE.MeshStandardMaterial({color:0xf2ece2,roughness:.72,metalness:0});
+ const fill=new THREE.DirectionalLight(0xe8e4f0,.65);fill.position.set(500,400,500);scene.add(fill);
+ const floor=new THREE.Mesh(new THREE.PlaneGeometry(4000,3000),new THREE.MeshStandardMaterial({color:0xfafafa,roughness:1}));floor.position.z=-5;scene.add(floor);
+ const bodyMaterial=new THREE.MeshStandardMaterial({color:0xc9c6cf,roughness:.72,metalness:0});
  const supportMaterial=new THREE.MeshStandardMaterial({color:0x258bdf,roughness:.5,metalness:.08});
  const supportCube=new THREE.BoxGeometry(1,1,1),loader=new GLTFLoader();
  const groups=[],bodies=[];let selected=null,ready=false,simulationReady=false,time=0,playing=false,inView=false,contextLost=false,duration=RELEASE;
  const physicsEnabled=host.dataset.physicsEnabled==='true';
- let cameraGoal=null,targetGoal=null,viewGoal=null,last=performance.now(),frame=0,renderedTime=-1;
+ let cameraGoal=null,targetGoal=null,viewGoal=null,last=performance.now(),frame=0,renderedTime=-1,interactionUntil=0;
+ let renderWidth=0,renderHeight=0;
  let labelSafeArea={left:12,right:12,top:120,bottom:176};
  const labels=host.querySelector('.physics-labels'),picker=host.querySelector('.physics-picker');
  const temp=new THREE.Object3D(),p=new THREE.Vector3(),qa=new THREE.Quaternion(),qb=new THREE.Quaternion();
@@ -93,8 +94,10 @@ async function initialise(){
    const fitted=fitScene(centres,width,height,insets);
    viewGoal={x:fitted.offsetX,y:fitted.offsetY};
    cameraGoal=new THREE.Vector3(...fitted.position);targetGoal=new THREE.Vector3(...fitted.target);
+   if(!instant&&!reduced)last=performance.now();
    if(instant||reduced){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;settleView();controls.update();}
-   else if(input.animate){inputAnimation?.cancel();inputAnimation=input.animate([{opacity:.55,transform:'translateY(8px)'},{opacity:1,transform:'translateY(0)'}],{duration:550,easing:'cubic-bezier(.2,.8,.2,1)'});}
+   else if(input.animate){inputAnimation?.cancel();inputAnimation=input.animate([{opacity:.7,transform:'translateY(4px)'},{opacity:1,transform:'translateY(0)'}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'});}
+   schedule();
  }
  function syncMethodLabels(){
    for(const group of groups){
@@ -121,7 +124,7 @@ async function initialise(){
    const data=buildSliceIndex(triangles),plane=new THREE.Plane(new THREE.Vector3(0,0,-1),data.bounds.max[2]);
    const material=bodyMaterial.clone();material.side=THREE.DoubleSide;material.clippingPlanes=[plane];material.clipShadows=false;
    const originals=nodes.map(node=>[node,node.material]);nodes.forEach(node=>{node.material=material;});
-   const contour=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0x61f3ec,depthTest:true,depthWrite:false}));contour.frustumCulled=false;contour.renderOrder=4;entry.offset.add(contour);
+   const contour=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0x00828b,depthTest:true,depthWrite:false}));contour.frustumCulled=false;contour.renderOrder=4;entry.offset.add(contour);
    entry.slice={data,plane,material,originals,contour};return entry.slice;
  }
  function releaseSlice(entry){
@@ -164,7 +167,7 @@ async function initialise(){
    pendingMode=next;host.dataset.requestedMode=next;if(!ready)return;
    if(sceneMode===next){resize();fit(selected,true);schedule();return;}
    if(sceneMode==='slice'){
-     sliceAuto=false;for(const entry of bodies)releaseSlice(entry);renderer.localClippingEnabled=false;
+     sliceAuto=false;sliceDirty=false;for(const entry of bodies)releaseSlice(entry);renderer.localClippingEnabled=false;
      if(savedSliceState){time=savedSliceState.time;playing=savedSliceState.playing&&!reduced;selected=savedSliceState.selected;savedSliceState=null;}
      renderedTime=-1;
    }
@@ -187,20 +190,21 @@ async function initialise(){
  sliceRange.addEventListener('input',()=>{sliceFraction=clamp(Number(sliceRange.value)/100,0,1);sliceAuto=false;sliceDirty=true;updateSliceControls();schedule();});
  sliceUI.querySelector('[data-slice-full]').addEventListener('click',()=>{sliceFraction=1;sliceAuto=false;sliceDirty=true;updateSliceControls();schedule();});
  sliceSweep.addEventListener('click',()=>{if(reduced||!ready)return;if(sliceFraction<=0)sliceFraction=1;sliceAuto=!sliceAuto;sliceDirty=true;last=performance.now();updateSliceControls();schedule();});
- function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();const positions=groupPositions(w,h);groups.forEach((g,i)=>{[g.x,g.y]=positions[i];g.root.position.set(g.x,g.y,0);});}
+ function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h||(w===renderWidth&&h===renderHeight))return;renderWidth=w;renderHeight=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();const positions=groupPositions(w,h);groups.forEach((g,i)=>{[g.x,g.y]=positions[i];g.root.position.set(g.x,g.y,0);});}
  const ro=new ResizeObserver(()=>{resize();fit(selected,true);schedule();});ro.observe(stage);ro.observe(host.querySelector('.spatial-controls'));
  const io=new IntersectionObserver(entries=>{inView=entries[0].isIntersecting;last=performance.now();schedule();},{rootMargin:'80px'});io.observe(stage);
  document.addEventListener('visibilitychange',()=>{last=performance.now();schedule();});
  renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();contextLost=true;playing=false;loading.hidden=false;loading.textContent='3D paused: graphics resources were released. Reload to resume.';updateUI();});
  renderer.domElement.addEventListener('webglcontextrestored',()=>location.reload());
- controls.addEventListener('start',()=>{cameraGoal=targetGoal=viewGoal=null;});
+ controls.addEventListener('start',()=>{cameraGoal=targetGoal=viewGoal=null;interactionUntil=performance.now()+180;schedule();});
+ controls.addEventListener('change',()=>{interactionUntil=performance.now()+180;schedule();});
 
  for(let i=0;i<examples.length;i++){
    const [id,name]=examples[i],x=(i%3-1)*330+(i>2?165:0),y=(Math.floor(i/3)-.5)*285;
    const root=new THREE.Group();root.position.set(x,y,0);scene.add(root);
-   const pad=new THREE.Mesh(new THREE.BoxGeometry(296,224,4),new THREE.MeshStandardMaterial({color:0x273c4e,roughness:.85}));pad.position.set(0,-2,-2.1);root.add(pad);
-   const edge=new THREE.LineSegments(new THREE.EdgesGeometry(pad.geometry),new THREE.LineBasicMaterial({color:0x597184,transparent:true,opacity:.7}));edge.position.copy(pad.position);root.add(edge);
-   if(id!=='penguin'){const divider=new THREE.Mesh(new THREE.BoxGeometry(.7,210,.15),new THREE.MeshBasicMaterial({color:0x526b7c}));divider.position.set(0,-2,.03);root.add(divider);}
+   const pad=new THREE.Mesh(new THREE.BoxGeometry(296,224,4),new THREE.MeshStandardMaterial({color:0xe6e4eb,roughness:.85}));pad.position.set(0,-2,-2.1);root.add(pad);
+   const edge=new THREE.LineSegments(new THREE.EdgesGeometry(pad.geometry),new THREE.LineBasicMaterial({color:0xbcb4c7,transparent:true,opacity:.7}));edge.position.copy(pad.position);root.add(edge);
+   if(id!=='penguin'){const divider=new THREE.Mesh(new THREE.BoxGeometry(.7,210,.15),new THREE.MeshBasicMaterial({color:0xd0c9d8}));divider.position.set(0,-2,.03);root.add(divider);}
    const label=document.createElement('button');label.type='button';label.className='physics-pair-label';label.innerHTML=`<img src="static/support-shatter-20261118/${id}-input.jpg" alt=""><span><b>${String(i+1).padStart(2,'0')} · ${name}</b><small>${id==='penguin'?'SAS only':'TRELLIS.2 / PhysRL3D'} ↗</small></span>`;label.setAttribute('aria-label',`Focus ${name}`);labels.append(label);label.addEventListener('click',()=>fit(id));
    const button=document.createElement('button');button.type='button';button.setAttribute('aria-pressed','false');button.setAttribute('aria-label',`Compare ${name}`);button.innerHTML=`<span class="picker-number">${String(i+1).padStart(2,'0')}</span><img src="static/support-shatter-20261118/${id}-input.jpg" alt=""><span><b>${name}</b><small>${id==='penguin'?'SAS only':'Compare pair'} ↗</small></span>`;picker.append(button);button.addEventListener('click',()=>fit(id));
    groups.push({id,name,root,label,button,x,y});
@@ -334,6 +338,10 @@ async function initialise(){
  }
  function projectLabels(){
    const w=stage.clientWidth,h=stage.clientHeight;
+   // Batch layout reads before projecting/writing positions; avoid a forced
+   // layout for each of the selected pair's collision-adjusted labels.
+   const labelSizes=new Map();
+   if(selected)for(const e of bodies.filter(e=>e.g.id===selected))for(const label of [e.label,e.weightLabel])labelSizes.set(label,{w:label.offsetWidth||130,h:label.offsetHeight||42});
    function place(label,point,visible){p.copy(point).project(camera);label.hidden=!visible||p.z>1||p.z< -1||Math.abs(p.x)>1.2||Math.abs(p.y)>1.2;label.style.left=`${(p.x*.5+.5)*w}px`;label.style.top=`${(-p.y*.5+.5)*h}px`;}
    for(const g of groups)place(g.label,new THREE.Vector3(g.x,g.y+112,24),g.root.visible&&!selected);
    for(const e of bodies){e.leader.hidden=e.weightLeader.hidden=true;const focused=e.g.id===selected;place(e.label,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-41,10),!selected||focused);place(e.weightLabel,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-105,8),sceneMode!=='slice'&&focused&&time<RELEASE);}
@@ -345,7 +353,7 @@ async function initialise(){
      const items=visible.map(e=>[e.label,e.leader]).concat(visible.map(e=>[e.weightLabel,e.weightLeader]));
      for(const [label,line] of items){
        if(label.hidden)continue;
-       const ax=parseFloat(label.style.left),ay=parseFloat(label.style.top),lw=label.offsetWidth,lh=label.offsetHeight;
+       const ax=parseFloat(label.style.left),ay=parseFloat(label.style.top),{w:lw,h:lh}=labelSizes.get(label);
        const minX=labelSafeArea.left+lw/2+4,maxX=Math.max(minX,w-labelSafeArea.right-lw/2-4);
        const minY=labelSafeArea.top+lh/2+4,maxY=Math.max(minY,h-labelSafeArea.bottom-lh/2-4);
        const x=clamp(ax,minX,maxX);let y=clamp(ay,minY,maxY);
@@ -358,13 +366,19 @@ async function initialise(){
    }
  }
  function tick(now){
-   frame=0;if(!active())return;if(now-last<30){schedule();return;}const dt=Math.min(.1,(now-last)/1000);last=now;
+   frame=0;if(!active())return;
+   // Keep support playback economical, but do not cap user camera interaction.
+   if(playing&&!cameraGoal&&now>=interactionUntil&&now-last<30){schedule();return;}
+   const dt=Math.min(.1,(now-last)/1000);last=now;
    if(sceneMode!=='slice'&&playing&&ready){time=Math.min(duration,time+dt);if(time>=duration)playing=false;}
    if(sceneMode==='slice'&&sliceAuto&&!reduced){sliceFraction=Math.max(0,sliceFraction-dt/14);sliceDirty=true;if(sliceFraction<=0)sliceAuto=false;}
-   if(cameraGoal){const ease=1-Math.exp(-5*dt);camera.position.lerp(cameraGoal,ease);controls.target.lerp(targetGoal,ease);if(viewGoal){const v=camera.view||{offsetX:0,offsetY:0};camera.setViewOffset(stage.clientWidth,stage.clientHeight,THREE.MathUtils.lerp(v.offsetX,viewGoal.x,ease),THREE.MathUtils.lerp(v.offsetY,viewGoal.y,ease),stage.clientWidth,stage.clientHeight);}if(camera.position.distanceTo(cameraGoal)<.15){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;settleView();}}
+   if(cameraGoal){const ease=1-Math.exp(-12*dt);camera.position.lerp(cameraGoal,ease);controls.target.lerp(targetGoal,ease);if(viewGoal){const v=camera.view||{offsetX:0,offsetY:0};camera.setViewOffset(stage.clientWidth,stage.clientHeight,THREE.MathUtils.lerp(v.offsetX,viewGoal.x,ease),THREE.MathUtils.lerp(v.offsetY,viewGoal.y,ease),stage.clientWidth,stage.clientHeight);}if(camera.position.distanceTo(cameraGoal)<.15){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;settleView();}}
    if(sceneMode==='slice'){if(sliceDirty&&now-lastSliceUpdate>90){applySlice();lastSliceUpdate=now;}}
    else if(time!==renderedTime){for(const e of bodies)applyBody(e,time);renderedTime=time;updateUI();}
-   controls.update();projectLabels();renderer.render(scene,camera);schedule();
+   controls.update();projectLabels();renderer.render(scene,camera);
+   // OrbitControls' change event schedules damping frames. Paused, untouched
+   // scenes should not compete with the document's transform animation.
+   if(playing||sliceAuto||cameraGoal||sliceDirty)schedule();
  }
  function active(){return (dialog.open||(inView&&host.dataset.atlasActive!=='false'))&&!document.hidden&&!contextLost;}
  function schedule(){if(!frame&&active())frame=requestAnimationFrame(tick);}
@@ -375,7 +389,7 @@ async function initialise(){
  play.addEventListener('click',()=>{if(sceneMode==='slice'||(sceneMode==='standing'&&!simulationReady))return;if(time>=duration)time=sceneMode==='standing'?RELEASE:0;playing=!playing;last=performance.now();updateUI();schedule();});
  replay.addEventListener('click',()=>{if(sceneMode==='slice'||(sceneMode==='standing'&&!simulationReady))return;time=sceneMode==='standing'?RELEASE:0;playing=true;last=performance.now();updateUI();schedule();});
  host.querySelector('[data-physics-overview]').addEventListener('click',()=>fit());
- host.querySelectorAll('[data-physics-zoom]').forEach(b=>b.addEventListener('click',()=>{const factor=b.dataset.physicsZoom==='in'?.8:1.25;targetGoal=controls.target.clone();const offset=camera.position.clone().sub(targetGoal);offset.setLength(clamp(offset.length()*factor,controls.minDistance,controls.maxDistance));cameraGoal=targetGoal.clone().add(offset);if(reduced){camera.position.copy(cameraGoal);cameraGoal=targetGoal=null;controls.update();}schedule();}));
+ host.querySelectorAll('[data-physics-zoom]').forEach(b=>b.addEventListener('click',()=>{const factor=b.dataset.physicsZoom==='in'?.8:1.25;targetGoal=controls.target.clone();const offset=camera.position.clone().sub(targetGoal);offset.setLength(clamp(offset.length()*factor,controls.minDistance,controls.maxDistance));cameraGoal=targetGoal.clone().add(offset);last=performance.now();if(reduced){camera.position.copy(cameraGoal);cameraGoal=targetGoal=null;controls.update();}schedule();}));
  stage.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='r'){e.preventDefault();fit(selected);}if(e.key===' '){e.preventDefault();if(ready)play.click();}});
  let down=null;renderer.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
  renderer.domElement.addEventListener('pointerup',e=>{if(sceneMode==='slice'||!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(bodies.filter(b=>b.g.root.visible).map(b=>b.body),true);if(hits[0]?.object.userData.example)fit(hits[0].object.userData.example);});

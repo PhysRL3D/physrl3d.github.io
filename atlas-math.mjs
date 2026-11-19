@@ -7,13 +7,30 @@ export const ATLAS_ZONES = Object.freeze([
   { key: 'paper', id: 'atlas-paper', label: 'Research', x: -1.34, y: 1.22 },
 ].map(Object.freeze));
 export const OVERVIEW_SCALE = 0.225;
-export const TRAVEL_SCREENS = 2.8;
+export const TRAVEL_SCALE = 0.62;
+export const TRAVEL_SCREENS = 1.1;
+export const DIRECT_NAV_MS = 480;
+export const MAP_NAV_MS = 300;
+export const SETTLE_NAV_MS = 180;
+export const SCROLL_IDLE_MS = 160;
+export const INTERRUPT_BLEND_MS = 120;
+export const STATION_EPSILON = 0.001;
 export const clamp = (value, min = 0, max = 1) => Math.max(min, Math.min(max, value));
 export const ease = value => { const t = clamp(value); return t * t * (3 - 2 * t); };
 const mix = (a, b, t) => clamp(a + (b - a) * t, Math.min(a, b), Math.max(a, b));
 
 export function stationProgress(index, count = ATLAS_ZONES.length) {
   return clamp(index / Math.max(1, count - 1));
+}
+
+export function cameraBetween(from, to, progress, dip = true) {
+  const t = clamp(Number.isFinite(progress) ? progress : 0);
+  if (t === 0) return {x: from.x, y: from.y, scale: from.scale};
+  if (t === 1) return {x: to.x, y: to.y, scale: to.scale};
+  const u = ease(t), baseScale = mix(from.scale, to.scale, u);
+  const depth = dip ? Math.max(0, Math.min(from.scale, to.scale) - TRAVEL_SCALE) : 0;
+  return {x: mix(from.x, to.x, u), y: mix(from.y, to.y, u),
+    scale: Math.max(Math.min(from.scale, to.scale, TRAVEL_SCALE), baseScale - depth * Math.sin(Math.PI * t))};
 }
 
 export function cameraAt(progress, zones = ATLAS_ZONES) {
@@ -24,15 +41,16 @@ export function cameraAt(progress, zones = ATLAS_ZONES) {
     return { x: zone.x, y: zone.y, scale: 1, index, phase: 'rest', settled: true, progress: p };
   }
   const segment = p * (zones.length - 1), index = Math.floor(segment), t = segment - index;
-  const a = zones[index], b = zones[index + 1];
-  if (t < .14) return { x: a.x, y: a.y, scale: 1, index, phase: 'rest', settled: true, progress: p };
-  if (t < .36) return { x: a.x, y: a.y, scale: mix(1, OVERVIEW_SCALE, ease((t - .14) / .22)), index, phase: 'pull-back', settled: false, progress: p };
-  if (t < .64) {
-    const u = ease((t - .36) / .28);
-    return { x: mix(a.x, b.x, u), y: mix(a.y, b.y, u), scale: OVERVIEW_SCALE, index: t < .5 ? index : index + 1, phase: 'travel', settled: false, progress: p };
+  // scrollY may be rounded to a CSS pixel even when a viewport multiple is not.
+  const nearest = Math.round(segment);
+  if (Math.abs(segment - nearest) <= STATION_EPSILON) {
+    const zone = zones[nearest];
+    return {x: zone.x, y: zone.y, scale: 1, index: nearest, phase: 'rest', settled: true, progress: p};
   }
-  if (t < .86) return { x: b.x, y: b.y, scale: mix(OVERVIEW_SCALE, 1, ease((t - .64) / .22)), index: index + 1, phase: 'approach', settled: false, progress: p };
-  return { x: b.x, y: b.y, scale: 1, index: index + 1, phase: 'rest', settled: true, progress: p };
+  const a = zones[index], b = zones[index + 1];
+  if (t === 0) return {x: a.x, y: a.y, scale: 1, index, phase: 'rest', settled: true, progress: p};
+  return {...cameraBetween({...a, scale: 1}, {...b, scale: 1}, t),
+    index: t < .5 ? index : index + 1, phase: t < .5 ? 'depart' : t > .5 ? 'approach' : 'travel', settled: false, progress: p};
 }
 
 export function worldTransform(camera, width, height) {

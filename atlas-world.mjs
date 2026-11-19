@@ -1,4 +1,4 @@
-import {ATLAS_ZONES, OVERVIEW_SCALE, TRAVEL_SCREENS, cameraAt, immersiveAllowed, progressFromScroll, stationProgress, worldTransform} from './atlas-math.mjs';
+import {ATLAS_ZONES, OVERVIEW_SCALE, TRAVEL_SCREENS, DIRECT_NAV_MS, MAP_NAV_MS, SETTLE_NAV_MS, SCROLL_IDLE_MS, INTERRUPT_BLEND_MS, cameraAt, cameraBetween, clamp, ease, immersiveAllowed, progressFromScroll, stationProgress, worldTransform} from './atlas-math.mjs?v=20261119light1';
 
 // Presentation only: one DOM, one live support viewer, no new experimental data.
 const root = document.documentElement;
@@ -31,6 +31,7 @@ function initialiseAtlas() {
   let mode = 'document', activeZone = 'home', viewerZone = 'home', pendingViewer = null;
   let frame = 0, travel = 0, top = 0, width = innerWidth, height = innerHeight;
   let currentCamera = cameraAt(0), overview = false, pendingAnchor = null, queuedNavigation = null;
+  let motion = null, interruptBlend = null, idleTimer = 0, resizeFrame = 0;
   let previousState = '', layoutKey = '', documentRequested = false;
   try { documentRequested = localStorage.getItem('physrl3d-atlas-document') === 'true'; } catch { /* Private browsing can deny storage. */ }
 
@@ -152,10 +153,10 @@ function initialiseAtlas() {
   }
   function emitState(key, moving = false) {
     activeZone = key;
-    root.dataset.atlasMode = mode; root.dataset.atlasZone = key; root.dataset.atlasMoving = String(moving);
-    const state = `${mode}:${key}:${moving}`;
+    const state = `${mode}:${key}:${moving}:${overview}`;
     if (state === previousState) return;
     previousState = state;
+    root.dataset.atlasMode = mode; root.dataset.atlasZone = key; root.dataset.atlasMoving = String(moving);
     for (const config of ATLAS_ZONES) {
       const active = config.key === key && !moving;
       zones.get(config.key).dataset.active = String(active);
@@ -203,16 +204,61 @@ function initialiseAtlas() {
     }
     return closest;
   }
-  function render() {
+  function clearSettle() { if (idleTimer) clearTimeout(idleTimer); idleTimer = 0; }
+  function beginTravel(index, duration = DIRECT_NAV_MS) {
+    clearSettle(); interruptBlend = null;
+    const target = cameraAt(stationProgress(index));
+    motion = {from: {...currentCamera}, to: target, index, fromIndex: currentCamera.index,
+      fromScroll: scrollY, toScroll: top + travel * stationProgress(index), expectedScroll: scrollY,
+      started: performance.now(), duration};
+    schedule();
+  }
+  function interruptTravel() {
+    clearSettle();
+    if ((!motion && !overview) || anyModalOpen()) return;
+    // Continue from the last drawn transform, blending back to native scroll.
+    // The user's wheel/touch/key is never cancelled or consumed.
+    motion = null; pendingAnchor = null; updateOverviewState(false);
+    interruptBlend = {from: {...currentCamera}, started: performance.now()};
+    schedule(); queueSettle();
+  }
+  function queueSettle() {
+    clearSettle();
+    if (mode !== 'space' || overview || motion || anyModalOpen()) return;
+    idleTimer = setTimeout(() => {
+      idleTimer = 0;
+      if (mode !== 'space' || overview || motion || anyModalOpen()) return;
+      const camera = cameraAt(progressFromScroll(scrollY, top, travel));
+      if (!camera.settled) beginTravel(camera.index, SETTLE_NAV_MS);
+    }, SCROLL_IDLE_MS);
+  }
+  function render(timestamp = performance.now()) {
     frame = 0;
-    if (anyModalOpen()) return;
+    if (anyModalOpen()) { if (motion && motion.pausedAt === undefined) motion.pausedAt = timestamp; return; }
+    if (motion?.pausedAt !== undefined) { motion.started += timestamp - motion.pausedAt; delete motion.pausedAt; }
     if (mode === 'document') {
       const key = readDocumentZone();
       emitState(key); setInert(null);
       setViewerActivity(key === viewerZone);
       return;
     }
-    currentCamera = overview ? {x: 0, y: 0, scale: OVERVIEW_SCALE, index: ATLAS_ZONES.findIndex(zone => zone.key === activeZone), settled: false, phase: 'map'} : cameraAt(progressFromScroll(scrollY, top, travel));
+    if (motion) {
+      const t = clamp((timestamp - motion.started) / motion.duration);
+      const mapMotion = motion.kind === 'map';
+      currentCamera = {...cameraBetween(motion.from, motion.to, t, !mapMotion),
+        index: t < .5 ? motion.fromIndex : motion.index,
+        settled: t === 1 && (!mapMotion || motion.to.settled), phase: t === 1 ? 'rest' : mapMotion ? 'map-travel' : 'direct'};
+      if (!mapMotion) {
+        motion.expectedScroll = motion.fromScroll + (motion.toScroll - motion.fromScroll) * ease(t);
+        window.scrollTo({top: motion.expectedScroll, behavior: 'instant'});
+      }
+      if (t === 1) { motion = null; if (mapMotion && !overview) queueSettle(); } else schedule();
+    } else if (interruptBlend) {
+      const camera = cameraAt(progressFromScroll(scrollY, top, travel));
+      const t = clamp((timestamp - interruptBlend.started) / INTERRUPT_BLEND_MS);
+      currentCamera = {...camera, ...cameraBetween(interruptBlend.from, camera, t, false), settled: t === 1 && camera.settled};
+      if (t === 1) interruptBlend = null; else schedule();
+    } else currentCamera = overview ? {x: 0, y: 0, scale: OVERVIEW_SCALE, index: ATLAS_ZONES.findIndex(zone => zone.key === activeZone), settled: false, phase: 'map'} : cameraAt(progressFromScroll(scrollY, top, travel));
     world.style.transform = worldTransform(currentCamera, width, height);
     const key = ATLAS_ZONES[currentCamera.index].key;
     const moving = !currentCamera.settled;
@@ -225,9 +271,18 @@ function initialiseAtlas() {
     }
   }
   function schedule() { if (!frame) frame = requestAnimationFrame(render); }
-  function setOverview(value) {
+  function updateOverviewState(value) {
     overview = value; root.dataset.atlasOverview = String(value);
     mapToggle.setAttribute('aria-pressed', String(value)); mapToggle.textContent = value ? 'Return to detail' : 'Whole space';
+  }
+  function setOverview(value, {animate = false} = {}) {
+    clearSettle(); motion = null; interruptBlend = null;
+    updateOverviewState(value);
+    if (animate && mode === 'space' && !reduced.matches) {
+      const target = value ? {x:0,y:0,scale:OVERVIEW_SCALE,index:currentCamera.index,settled:false} : cameraAt(progressFromScroll(scrollY,top,travel));
+      motion = {kind:'map',from:{...currentCamera},to:target,index:target.index,fromIndex:currentCamera.index,
+        expectedScroll:scrollY,started:performance.now(),duration:MAP_NAV_MS};
+    }
     schedule();
   }
   function navigate(key, {target = null, updateHash = false, immediate = false} = {}) {
@@ -240,7 +295,10 @@ function initialiseAtlas() {
     }
     document.querySelector('.explore-menu')?.removeAttribute('open');
     if (mode === 'space') {
-      window.scrollTo({top: top + travel * stationProgress(index), behavior: immediate || reduced.matches ? 'instant' : 'smooth'});
+      if (immediate || reduced.matches) {
+        currentCamera = cameraAt(stationProgress(index));
+        window.scrollTo({top: top + travel * stationProgress(index), behavior: 'instant'});
+      } else beginTravel(index);
       schedule();
     } else {
       if (mounts.has(key)) moveViewer(key);
@@ -257,10 +315,13 @@ function initialiseAtlas() {
   function updateLayout({preserve = true} = {}) {
     if (anyModalOpen()) { layoutKey = ''; return; }
     const formerMode = mode, key = activeZone;
+    const previousProgress = progressFromScroll(scrollY, top, travel);
+    const wasMoving = Boolean(motion || interruptBlend || !currentCamera.settled);
     width = innerWidth; height = innerHeight;
     const desired = immersiveAllowed(width, height, reduced.matches, documentRequested) ? 'space' : 'document';
     const nextKey = `${desired}:${width}:${height}`;
     if (nextKey === layoutKey) return;
+    clearSettle(); motion = null; interruptBlend = null;
     layoutKey = nextKey; mode = desired; previousState = ''; overview = false;
     root.dataset.atlasMode = mode; root.dataset.atlasOverview = 'false';
     root.classList.add('atlas-ready');
@@ -275,7 +336,11 @@ function initialiseAtlas() {
       track.style.height = `${height + travel}px`;
       viewport.style.setProperty('--atlas-width', `${width}px`); viewport.style.setProperty('--atlas-height', `${height}px`);
       top = track.getBoundingClientRect().top + scrollY;
-      if (preserve) window.scrollTo({top: top + travel * stationProgress(ATLAS_ZONES.findIndex(zone => zone.key === key)), behavior: 'instant'});
+      if (preserve) {
+        const progress = formerMode === 'space' ? previousProgress : stationProgress(ATLAS_ZONES.findIndex(zone => zone.key === key));
+        window.scrollTo({top: top + travel * progress, behavior: 'instant'});
+        if (formerMode === 'space' && wasMoving) interruptBlend = {from: {...currentCamera}, started: performance.now()};
+      }
     } else {
       track.style.removeProperty('height'); world.style.removeProperty('transform'); setInert(null);
       if (preserve && formerMode !== mode) zones.get(key).scrollIntoView({block: 'start', behavior: 'instant'});
@@ -301,16 +366,33 @@ function initialiseAtlas() {
     const next = event.key === 'Home' ? 0 : event.key === 'End' ? ATLAS_ZONES.length - 1 : Math.max(0, Math.min(ATLAS_ZONES.length - 1, index + (event.key === 'ArrowRight' ? 1 : -1)));
     navigate(ATLAS_ZONES[next].key); navButtons.get(ATLAS_ZONES[next].key).focus({preventScroll: true});
   });
-  document.addEventListener('keydown', event => { if (event.key === 'Escape' && overview && !anyModalOpen()) setOverview(false); });
-  mapToggle.addEventListener('click', () => setOverview(!overview));
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && overview && !anyModalOpen()) setOverview(false,{animate:true}); });
+  mapToggle.addEventListener('click', () => setOverview(!overview,{animate:true}));
   modeToggle.addEventListener('click', () => {
     documentRequested = mode === 'space';
     try { localStorage.setItem('physrl3d-atlas-document', String(documentRequested)); } catch { /* Preference still works for this visit. */ }
     updateLayout();
   });
-  // Ordinary browser scrolling remains authoritative. No wheel/touch interception.
-  window.addEventListener('scroll', () => { if (overview) setOverview(false); schedule(); }, {passive: true});
-  window.addEventListener('resize', () => updateLayout(), {passive: true});
+  // Native scroll remains authoritative. Programmatic nav writes a matching
+  // scroll coordinate while drawing a direct route, never intermediate stations.
+  window.addEventListener('scroll', () => {
+    if (motion && Math.abs(scrollY - motion.expectedScroll) <= 2) return;
+    if (motion) interruptTravel();
+    if (overview) setOverview(false);
+    schedule(); queueSettle();
+  }, {passive: true});
+  window.addEventListener('wheel', interruptTravel, {passive: true});
+  const interruptPointer = event => { if (!event.target?.closest?.('.atlas-dock,.atlas-map-wrap')) interruptTravel(); };
+  window.addEventListener('touchstart', interruptPointer, {passive: true});
+  window.addEventListener('pointerdown', interruptPointer, {passive: true});
+  window.addEventListener('keydown', event => {
+    if (!event.defaultPrevented && !event.target?.closest?.('.atlas-dock,.atlas-map-wrap')
+      && ['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(event.key)
+      && !event.target?.closest?.('input,textarea,select,[contenteditable="true"]')) interruptTravel();
+  });
+  window.addEventListener('resize', () => {
+    if (!resizeFrame) resizeFrame = requestAnimationFrame(() => { resizeFrame = 0; updateLayout(); });
+  }, {passive: true});
   reduced.addEventListener('change', () => updateLayout());
   window.addEventListener('hashchange', () => { const target = hashTarget(), key = targetZone(target); if (key) navigate(key, {target}); });
   // Native close does not bubble. Capture also covers the other existing inspectors.
