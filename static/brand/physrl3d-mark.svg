@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="PhysRL3D monogram">
+  <defs>
+    <linearGradient id="depth" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#9d7acb"/><stop offset="1" stop-color="#513276"/>
+    </linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2=".8" y2="1">
+      <stop stop-color="#b99be1"/><stop offset=".5" stop-color="#8b63bc"/><stop offset="1" stop-color="#70479f"/>
+    </linearGradient>
+    <path id="letter" fill-rule="evenodd" d="M13 9H31C43 9 50 16 50 27S43 45 31 45H25V56H13ZM25 20V34H31C36 34 39 32 39 27S36 20 31 20Z"/>
+    <clipPath id="bowl"><rect x="25" y="8" width="28" height="38"/></clipPath>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="14" fill="#fff" stroke="#eeeaf3"/>
+  <use href="#letter" x="5" y="4" fill="url(#depth)"/>
+  <use href="#letter" x="4" y="3.2" fill="url(#depth)"/>
+  <use href="#letter" x="3" y="2.4" fill="url(#depth)"/>
+  <use href="#letter" x="2" y="1.6" fill="url(#depth)"/>
+  <use href="#letter" x="1" y=".8" fill="url(#depth)"/>
+  <use href="#letter" fill="#202024"/>
+  <use href="#letter" fill="url(#face)" clip-path="url(#bowl)"/>
+</svg>
