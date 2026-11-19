@@ -103,22 +103,30 @@ function initialiseGallery(section) {
   }
   function resize() {
     if (!renderer) return;
-    const rect = stage.getBoundingClientRect();
-    if (rect.width < 1 || rect.height < 1) return;
-    renderer.setSize(rect.width, rect.height, false);
-    camera.aspect = rect.width / rect.height;
+    // CSS atlas zoom must not shrink the backing buffer or alter camera geometry.
+    const width = stage.clientWidth, height = stage.clientHeight;
+    if (width < 1 || height < 1) return;
+    renderer.setSize(width, height, false);
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
     if (Math.abs(camera.aspect - aspect) > .001) { aspect = camera.aspect; fitCamera(true); }
   }
+  function atlasPaperActive() {
+    const state = document.documentElement.dataset;
+    return state.atlasMode !== 'space' || (state.atlasZone === 'paper' && state.atlasMoving !== 'true');
+  }
+  function isActive() {
+    return !document.hidden && !contextLost && (dialog.open || (inView && atlasPaperActive()));
+  }
   function animate() {
     frameId = 0;
-    if (!renderer || (!inView && !dialog.open) || document.hidden || contextLost) return;
+    if (!renderer || !isActive()) return;
     controls.update();
     renderer.render(scene, camera);
     frameId = requestAnimationFrame(animate);
   }
   function updateActivity() {
-    if ((!inView && !dialog.open) || document.hidden || contextLost) {
+    if (!isActive()) {
       cancelAnimationFrame(frameId);
       frameId = 0;
     } else if (renderer && !frameId) frameId = requestAnimationFrame(animate);
@@ -291,9 +299,13 @@ function initialiseGallery(section) {
   new ResizeObserver(resize).observe(stage);
   new IntersectionObserver(entries => {
     inView = entries[0].isIntersecting;
-    if (inView && !renderer) loadExample();
+    if (isActive() && !renderer) loadExample();
     updateActivity();
   }, { rootMargin: '150px' }).observe(stage);
+  document.addEventListener('physrl3d:atlas-zone', () => {
+    if (isActive() && !renderer) loadExample();
+    resize(); updateActivity();
+  });
   document.addEventListener('visibilitychange', updateActivity);
   reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) setSpin(false); });
 }

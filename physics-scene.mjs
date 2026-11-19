@@ -3,8 +3,11 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {groupPositions,viewInsets,fitScene} from './spatial-layout.mjs';
 import {SWEEP_START,SWEEP_END,WEIGH_TIME,RELEASE_TIME,massSummary,sweepPose,smooth} from './support-weighing.mjs';
+import {STANDING_DURATION,validateStandingData,sampleStanding} from './standing-test.mjs?v=20261119standing1';
+import {buildSliceIndex,sliceHeight,intersectSlice} from './mesh-slice.mjs?v=20261119slice1';
 
 const ROOT='static/physics-20261118/';
+const STANDING_ROOT='static/standing-20261119/';
 const examples=[['chair','Chair'],['cat','Cat'],['poodle','Poodle'],['xmastree','Christmas tree'],['penguin','Penguin']];
 const RELEASE=RELEASE_TIME;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -46,12 +49,23 @@ async function initialise(){
  const temp=new THREE.Object3D(),p=new THREE.Vector3(),qa=new THREE.Quaternion(),qb=new THREE.Quaternion();
  const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
  const dialog=document.querySelector('#physics-dialog');let placeholder=null,returnFocus=null,inputAnimation=null;
+ const standingDetail=host.querySelector('[data-standing-detail]');
+ let standingDetailKey='';
+ let sceneMode='home',pendingMode=host.dataset.requestedMode||'home',sliceFraction=1,sliceAuto=false,sliceDirty=false,lastSliceUpdate=0,savedSliceState=null;
+ const sliceButton=document.createElement('button');sliceButton.type='button';sliceButton.dataset.physicsSlice='';sliceButton.textContent='Slice';sliceButton.disabled=true;sliceButton.setAttribute('aria-pressed','false');
+ host.querySelector('.physics-toolbar>div').append(sliceButton);
+ const sliceUI=document.createElement('section');sliceUI.className='mesh-slice-controls';sliceUI.setAttribute('aria-label','Model cutaway controls');
+ sliceUI.innerHTML='<div class="mesh-slice-heading"><strong>Top-to-bottom cutaway</strong><div class="mesh-slice-actions"><button type="button" data-slice-full>Full object</button><button type="button" data-slice-sweep aria-pressed="false">Sweep down</button></div></div><label class="mesh-slice-range"><span>Retained height</span><input type="range" min="0" max="100" step="0.25" value="100" aria-label="Retained model height, 100 percent whole model to zero percent at bottom"><output data-slice-percent>100%</output></label><div class="mesh-slice-heights" data-slice-heights></div><p class="mesh-slice-disclosure">Cyan contours intersect the display mesh. Open cutaway surfaces, not actual printed walls, infill or G-code.</p>';
+ host.querySelector('.physics-picker').before(sliceUI);
+ const sliceRange=sliceUI.querySelector('input'),slicePercent=sliceUI.querySelector('[data-slice-percent]'),sliceHeights=sliceUI.querySelector('[data-slice-heights]'),sliceSweep=sliceUI.querySelector('[data-slice-sweep]');
+ host.dataset.sceneMode='home';
  const settleView=()=>{if(viewGoal){camera.setViewOffset(stage.clientWidth,stage.clientHeight,viewGoal.x,viewGoal.y,stage.clientWidth,stage.clientHeight);viewGoal=null;}};
- motionPreference.addEventListener('change',event=>{reduced=event.matches;if(reduced){playing=false;inputAnimation?.cancel();if(cameraGoal){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;controls.update();}settleView();updateUI();schedule();}});
+ motionPreference.addEventListener('change',event=>{reduced=event.matches;if(reduced){playing=false;sliceAuto=false;updateSliceControls();inputAnimation?.cancel();if(cameraGoal){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;controls.update();}settleView();updateUI();schedule();}});
 
  function fit(id=null,instant=false){
+   if(sceneMode==='slice'&&!id)id=selected||'chair';
    selected=id;const group=groups.find(g=>g.id===id);
-   host.dataset.focus=id||'all';updateMassDetail();
+   host.dataset.focus=id||'all';updateMassDetail();updateStandingDetail(true);
    const input=host.querySelector('.pair-input');
    input.querySelector('img').src=`static/support-shatter-20261118/${id||'chair'}-input.jpg`;
    input.querySelector('img').alt=group?`${group.name}: conditioning image`:'Select an example to see its conditioning image';
@@ -60,16 +74,21 @@ async function initialise(){
    input.querySelector('[data-pair-explanation]').textContent=!group?'Select a numbered pair to inspect the input and both methods.':id==='penguin'?'One input → SAS output. Baseline is being rechecked.':'One input → two methods. Rotate and compare the matched outputs.';
    input.querySelector('.pair-input-image').hidden=!group;
    host.querySelector('[data-physics-overview]').setAttribute('aria-pressed',String(!id));
-   for(const g of groups){g.root.visible=true;g.label.hidden=!!id;g.button.setAttribute('aria-pressed',String(g.id===id));}
+   for(const g of groups){g.root.visible=sceneMode!=='slice'||g.id===id;g.label.hidden=!!id;g.button.setAttribute('aria-pressed',String(g.id===id));}
+   if(sceneMode==='slice'){sliceDirty=true;for(const entry of bodies)if(entry.g.id!==id)releaseSlice(entry);}
    const width=stage.clientWidth,height=stage.clientHeight;
    const centres=(group?[group]:groups).map(g=>[g.x,g.y]);
    if(!centres.length||!width||!height)return;
    const insets=viewInsets(width,height,Boolean(group),dialog.open),rect=stage.getBoundingClientRect();
+   const scaleX=rect.width/width||1,scaleY=rect.height/height||1;
    const dock=host.querySelector('.spatial-controls').getBoundingClientRect();
-   insets.bottom=Math.max(insets.bottom,rect.bottom-dock.top+10);
+   host.style.setProperty('--physics-control-height',`${dock.height/scaleY}px`);
+   insets.bottom=Math.max(insets.bottom,(rect.bottom-dock.top)/scaleY+10);
+   const topline=host.querySelector('.physics-topline');
+   if(width<=680&&topline.offsetHeight)insets.bottom=Math.max(insets.bottom,(rect.bottom-topline.getBoundingClientRect().top)/scaleY+10);
    const title=(group&&width<=680?input:host.querySelector('.physics-intro')).getBoundingClientRect();
-   insets.top=Math.max(insets.top,title.bottom-rect.top+12);
-   if(group&&width>680)insets.left=Math.max(insets.left,input.getBoundingClientRect().right-rect.left+16);
+   insets.top=Math.max(insets.top,(title.bottom-rect.top)/scaleY+12);
+   if(group&&width>680)insets.left=Math.max(insets.left,(input.getBoundingClientRect().right-rect.left)/scaleX+16);
    labelSafeArea=insets;
    const fitted=fitScene(centres,width,height,insets);
    viewGoal={x:fitted.offsetX,y:fitted.offsetY};
@@ -77,8 +96,99 @@ async function initialise(){
    if(instant||reduced){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;settleView();controls.update();}
    else if(input.animate){inputAnimation?.cancel();inputAnimation=input.animate([{opacity:.55,transform:'translateY(8px)'},{opacity:1,transform:'translateY(0)'}],{duration:550,easing:'cubic-bezier(.2,.8,.2,1)'});}
  }
+ function syncMethodLabels(){
+   for(const group of groups){
+     const members=bodies.filter(body=>body.g.id===group.id),available=members.filter(body=>body.physics.status==='ready').length;
+     const unavailable=sceneMode==='standing'&&available<members.length;
+     group.label.querySelector('small').textContent=unavailable?`${available} / ${members.length} replays available`:group.id==='penguin'?'SAS only':'TRELLIS.2 / PhysRL3D';
+     group.button.querySelector('small').textContent=unavailable?`${available} / ${members.length} replays available`:group.id==='penguin'?'SAS only':'Compare pair';
+     group.label.title=unavailable?members.filter(body=>body.physics.status!=='ready').map(body=>`${body.method==='sas'?'PhysRL3D':'TRELLIS.2'}: ${body.physics.reason}`).join('\n'):'';
+   }
+ }
+ function prepareSlice(entry){
+   if(entry.slice)return entry.slice;
+   entry.body.updateWorldMatrix(true,true);
+   const inverse=entry.body.matrixWorld.clone().invert(),nodes=[];let length=0;
+   entry.body.traverse(node=>{if(node.isMesh&&node.geometry?.attributes.position){nodes.push(node);length+=(node.geometry.index?.count||node.geometry.attributes.position.count)*3;}});
+   const triangles=new Float64Array(length),v=new THREE.Vector3();let cursor=0;
+   for(const node of nodes){
+     const matrix=new THREE.Matrix4().multiplyMatrices(inverse,node.matrixWorld),geometry=node.geometry,positions=geometry.attributes.position,index=geometry.index;
+     for(let i=0,n=index?.count||positions.count;i<n;i++){
+       const k=index?index.getX(i):i;v.fromBufferAttribute(positions,k).applyMatrix4(matrix);
+       triangles[cursor++]=v.x;triangles[cursor++]=v.y;triangles[cursor++]=v.z;
+     }
+   }
+   const data=buildSliceIndex(triangles),plane=new THREE.Plane(new THREE.Vector3(0,0,-1),data.bounds.max[2]);
+   const material=bodyMaterial.clone();material.side=THREE.DoubleSide;material.clippingPlanes=[plane];material.clipShadows=false;
+   const originals=nodes.map(node=>[node,node.material]);nodes.forEach(node=>{node.material=material;});
+   const contour=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0x61f3ec,depthTest:true,depthWrite:false}));contour.frustumCulled=false;contour.renderOrder=4;entry.offset.add(contour);
+   entry.slice={data,plane,material,originals,contour};return entry.slice;
+ }
+ function releaseSlice(entry){
+   if(!entry.slice)return;
+   const state=entry.slice;for(const [node,material] of state.originals)node.material=material;
+   state.contour.removeFromParent();state.contour.geometry.dispose();state.contour.material.dispose();state.material.dispose();entry.slice=null;
+ }
+ function updateSliceControls(){
+   sliceRange.value=String(sliceFraction*100);slicePercent.textContent=`${Math.round(sliceFraction*100)}%`;
+   sliceSweep.textContent=sliceAuto?'Pause sweep':'Sweep down';sliceSweep.setAttribute('aria-pressed',String(sliceAuto));sliceSweep.disabled=reduced||!ready;
+ }
+ function applySlice(){
+   const descriptions=[];renderer.localClippingEnabled=true;
+   for(const entry of bodies){
+     entry.body.position.set(0,0,0);entry.body.quaternion.identity();entry.body.visible=entry.g.id===selected;
+     entry.chunks.forEach(chunk=>chunk.visible=false);entry.scale.visible=entry.sweeper.visible=false;entry.weightLabel.hidden=true;
+     if(entry.g.id!==selected)continue;
+     try{
+       const state=prepareSlice(entry),height=sliceHeight(state.data,sliceFraction),whole=sliceFraction>=1;
+       entry.offset.getWorldPosition(p);state.plane.constant=p.z+height.z;
+       if(state.whole!==whole){state.whole=whole;state.material.needsUpdate=true;}
+       state.material.clippingPlanes=whole?[]:[state.plane];
+       state.contour.visible=!whole;
+       if(!whole){
+         const intersection=intersectSlice(state.data,height.z),geometry=new THREE.BufferGeometry();
+         geometry.setAttribute('position',new THREE.BufferAttribute(intersection.positions,3));
+         state.contour.geometry.dispose();state.contour.geometry=geometry;state.contour.position.z=state.data.epsilon*4;
+       }
+       descriptions.push(`${entry.method==='sas'?'PhysRL3D':'TRELLIS.2'}: ${height.heightMm.toFixed(1)} / ${height.fullHeightMm.toFixed(1)} mm`);
+       entry.label.title=`Mesh cut at ${height.heightMm.toFixed(2)} mm above this model's lowest point. Display geometry only; no printed interior is inferred.`;
+     }catch(error){
+       releaseSlice(entry);descriptions.push(`${entry.method==='sas'?'PhysRL3D':'TRELLIS.2'}: cutaway unavailable`);console.warn('Mesh cutaway unavailable',entry.key,error);
+     }
+   }
+   sliceHeights.textContent=descriptions.join(' · ')+' · measured above each model’s bottom';
+   sliceDirty=false;updateSliceControls();
+ }
+ function setMode(next){
+   if(!['home','slice','standing'].includes(next))return;
+   pendingMode=next;host.dataset.requestedMode=next;if(!ready)return;
+   if(sceneMode===next){resize();fit(selected,true);schedule();return;}
+   if(sceneMode==='slice'){
+     sliceAuto=false;for(const entry of bodies)releaseSlice(entry);renderer.localClippingEnabled=false;
+     if(savedSliceState){time=savedSliceState.time;playing=savedSliceState.playing&&!reduced;selected=savedSliceState.selected;savedSliceState=null;}
+     renderedTime=-1;
+   }
+   if(next==='slice'){
+     savedSliceState={time,playing,selected};playing=false;sliceAuto=false;sliceFraction=1;
+     selected=selected||'chair';sceneMode=next;host.dataset.sceneMode=next;applySlice();
+   }else{
+     sceneMode=next;host.dataset.sceneMode=next;
+     if(next==='standing'){playing=false;time=RELEASE;selected=selected||'chair';}
+     for(const entry of bodies)applyBody(entry,time);renderedTime=time;
+   }
+   sliceButton.textContent=next==='slice'?'Exit slice':'Slice';sliceButton.setAttribute('aria-pressed',String(next==='slice'));
+   syncMethodLabels();updateUI();updateSliceControls();resize();fit(selected,true);last=performance.now();schedule();
+   host.dispatchEvent(new CustomEvent('physrl3d:modechange',{detail:{mode:next,selected},bubbles:true}));
+ }
+ host.addEventListener('physrl3d:mode',event=>setMode(event.detail?.mode));
+ host.addEventListener('physrl3d:refresh',()=>{resize();fit(selected,true);sliceDirty=sceneMode==='slice';last=performance.now();schedule();});
+ host.addEventListener('physrl3d:visibility',()=>{last=performance.now();schedule();});
+ sliceButton.addEventListener('click',()=>host.dispatchEvent(new CustomEvent('physrl3d:mode',{detail:{mode:sceneMode==='slice'?'home':'slice'},bubbles:true})));
+ sliceRange.addEventListener('input',()=>{sliceFraction=clamp(Number(sliceRange.value)/100,0,1);sliceAuto=false;sliceDirty=true;updateSliceControls();schedule();});
+ sliceUI.querySelector('[data-slice-full]').addEventListener('click',()=>{sliceFraction=1;sliceAuto=false;sliceDirty=true;updateSliceControls();schedule();});
+ sliceSweep.addEventListener('click',()=>{if(reduced||!ready)return;if(sliceFraction<=0)sliceFraction=1;sliceAuto=!sliceAuto;sliceDirty=true;last=performance.now();updateSliceControls();schedule();});
  function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();const positions=groupPositions(w,h);groups.forEach((g,i)=>{[g.x,g.y]=positions[i];g.root.position.set(g.x,g.y,0);});}
- const ro=new ResizeObserver(()=>{resize();fit(selected,true);schedule();});ro.observe(stage);
+ const ro=new ResizeObserver(()=>{resize();fit(selected,true);schedule();});ro.observe(stage);ro.observe(host.querySelector('.spatial-controls'));
  const io=new IntersectionObserver(entries=>{inView=entries[0].isIntersecting;last=performance.now();schedule();},{rootMargin:'80px'});io.observe(stage);
  document.addEventListener('visibilitychange',()=>{last=performance.now();schedule();});
  renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();contextLost=true;playing=false;loading.hidden=false;loading.textContent='3D paused: graphics resources were released. Reload to resume.';updateUI();});
@@ -99,8 +209,13 @@ async function initialise(){
 
  async function addBody(g,method){
    const key=`${g.id}-${method}`,meta=await json(ROOT+key+'.json');
+   // A missing or invalid trajectory must not discard this model or its supports.
+   const physicsRequest=physicsEnabled?json(STANDING_ROOT+key+'.json')
+     .then(data=>validateStandingData(data,key))
+     .catch(()=>({status:'unavailable',reason:'The rigid-body replay could not be loaded for this model.'})):
+     Promise.resolve({status:'unavailable',reason:'Rigid-body replay has not been enabled.'});
    const [glb,segmentsBuffer,idsBuffer,motionBuffer,physics]=await Promise.all([
-     loader.loadAsync(ROOT+key+'-body.glb'),bin(ROOT+key+'-supports.bin'),bin(ROOT+key+'-chunk-ids.bin'),bin(ROOT+key+'-motion-quat.bin'),physicsEnabled?json(ROOT+key+'-physics.json'):Promise.resolve(null)]);
+     loader.loadAsync(ROOT+key+'-body.glb'),bin(ROOT+key+'-supports.bin'),bin(ROOT+key+'-chunk-ids.bin'),bin(ROOT+key+'-motion-quat.bin'),physicsRequest]);
    const offset=new THREE.Group();offset.position.x=g.id==='penguin'?0:(method==='trellis2'?-64:64);g.root.add(offset);
    const body=new THREE.Group();offset.add(body);body.add(glb.scene);
    glb.scene.traverse(node=>{if(node.isMesh){node.material=bodyMaterial;node.userData.example=g.id;if(!node.geometry.attributes.normal)node.geometry.computeVertexNormals();}});
@@ -123,30 +238,34 @@ async function initialise(){
    const tray=new THREE.Mesh(new THREE.BoxGeometry(45,32,1.4),new THREE.MeshStandardMaterial({color:0xe4e7ef,roughness:.5,metalness:.15}));tray.position.z=4.1;scale.add(tray);
    const display=new THREE.Mesh(new THREE.BoxGeometry(24,4,.5),new THREE.MeshStandardMaterial({color:0x849ba6,roughness:.4}));display.position.set(0,-11.2,3.7);scale.add(display);
    const sweeper=new THREE.Mesh(new THREE.BoxGeometry(76,2,4),new THREE.MeshStandardMaterial({color:0xa798b4,roughness:.8}));offset.add(sweeper);sweeper.visible=false;
-   const label=document.createElement('div');label.className=`physics-body-label method-${method}`;label.innerHTML=`<b>${method==='sas'?'PhysRL3D':'TRELLIS.2'}</b><small>${method==='sas'?'SAS · OURS':'BASE GENERATOR'}</small>`;labels.append(label);
+   const label=document.createElement('div');label.className=`physics-body-label method-${method}`;label.innerHTML=`<b>${method==='sas'?'PhysRL3D':'TRELLIS.2'}</b><small>${method==='sas'?'SAS · OURS':'BASE GENERATOR'}</small><span class="standing-body-readout"><span data-standing-tilt>Awaiting release</span><span data-standing-state>Rigid-body replay</span></span>`;labels.append(label);
+   if(physics.status==='ready'&&physics.timestepSensitive){
+     const badge=document.createElement('span');badge.className='standing-sensitive-badge';badge.textContent='Numerically sensitive';
+     badge.title=physics.caution||'The observed motion changes with the simulation timestep; this is not robust standing evidence.';
+     Object.assign(badge.style,{display:'block',marginTop:'6px',padding:'4px 6px',border:'1px solid #c1a26d',borderRadius:'5px',background:'#51402de8',color:'#ffe2b3',fontSize:'.75rem',fontWeight:'600',lineHeight:'1.3',letterSpacing:'0'});
+     label.dataset.timestepSensitive='true';label.append(badge);
+   }
    const weight=massSummary(weightData.models[key]);
    const weightLabel=document.createElement('div');weightLabel.className='support-weight-label';weightLabel.innerHTML='<b>— g</b><span>Awaiting supports</span><small>Slicer estimate</small>';labels.append(weightLabel);
    const leader=document.createElement('div'),weightLeader=document.createElement('div');
    for(const line of [leader,weightLeader]){line.className='physics-label-leader';line.hidden=true;labels.prepend(line);}
-   const entry={key,g,method,offset,body,chunks,motion,physics,label,meta,weight,weightLabel,leader,weightLeader,scale,sweeper};bodies.push(entry);
+   const entry={key,g,method,offset,body,chunks,motion,physics,label,meta,weight,weightLabel,leader,weightLeader,scale,sweeper,
+     tiltLabel:label.querySelector('[data-standing-tilt]'),stateLabel:label.querySelector('[data-standing-state]'),standingFrame:null};bodies.push(entry);
    applyBody(entry,0);return entry;
  }
  function physicsSample(entry,t){
-   const data=entry.physics;if(!data){entry.body.position.set(0,0,0);entry.body.quaternion.identity();return 0;}const states=data.states,fps=data.fps||30;
-   const f=clamp(t*fps,0,states.length-1);let a=Math.floor(f),b=Math.min(a+1,states.length-1),s=f-a;
-   if(data.time_s){while(a>0&&data.time_s[a]>t)a--;while(a<states.length-2&&data.time_s[a+1]<t)a++;b=Math.min(a+1,states.length-1);s=b===a?0:clamp((t-data.time_s[a])/(data.time_s[b]-data.time_s[a]),0,1);}
-   const pa=states[a],pb=states[b];
-   entry.body.position.set(THREE.MathUtils.lerp(pa[0],pb[0],s),THREE.MathUtils.lerp(pa[1],pb[1],s),THREE.MathUtils.lerp(pa[2],pb[2],s));
-   qa.set(pa[4],pa[5],pa[6],pa[3]);qb.set(pb[4],pb[5],pb[6],pb[3]);entry.body.quaternion.copy(qa).slerp(qb,s);
-   const up=new THREE.Vector3(0,0,1).applyQuaternion(entry.body.quaternion);
-   return THREE.MathUtils.radToDeg(Math.acos(clamp(up.z,-1,1)));
+   const sampled=sampleStanding(entry.physics,t);entry.standingFrame=sampled;
+   if(!sampled){entry.body.position.set(0,0,0);entry.body.quaternion.identity();return null;}
+   entry.body.position.set(...sampled.position);
+   const [w,x,y,z]=sampled.quaternion;entry.body.quaternion.set(x,y,z,w);
+   return sampled;
  }
  function applyBody(entry,t){
-   const tilt=physicsSample(entry,Math.max(0,t-RELEASE));
+   const standing=physicsSample(entry,Math.max(0,t-RELEASE));
    entry.body.visible=true;
    const framePos=clamp(Math.min(t,SWEEP_START)*24,0,143),a=Math.floor(framePos),b=Math.min(143,a+1),alpha=framePos-a;
    for(let c=0;c<entry.chunks.length;c++){
-     const chunk=entry.chunks[c];chunk.visible=true;
+     const chunk=entry.chunks[c];chunk.visible=t<RELEASE;
      const start=(c*144+a)*8,end=(c*144+b)*8,m=entry.motion;
      const v=k=>THREE.MathUtils.lerp(m[start+k],m[end+k],alpha);
      qa.set(m[start+3],m[start+4],m[start+5],m[start+6]);qb.set(m[end+3],m[end+4],m[end+5],m[end+6]);chunk.quaternion.copy(qa).slerp(qb,alpha);
@@ -155,7 +274,13 @@ async function initialise(){
    }
    entry.sweeper.visible=t>=SWEEP_START&&t<SWEEP_END;
    const sweep=smooth((t-SWEEP_START)/(SWEEP_END-SWEEP_START));entry.sweeper.position.set(0,45-100*sweep,3);
-   entry.label.title=entry.physics?`Tilt ${tilt.toFixed(1)} degrees`:'Original generated geometry; simulation pending';
+   const released=t>=RELEASE;
+   entry.scale.visible=!released;
+   entry.label.dataset.standingState=!standing?'unavailable':!released?'queued':standing.tiltDeg>10?'rotated':'within';
+   entry.tiltLabel.textContent=!standing?'Test unavailable':!released?'Awaiting release':`Tilt ${standing.tiltDeg.toFixed(1)}°`;
+   entry.stateLabel.textContent=!standing?'Not simulated':!released?'10 s rigid-body replay':standing.state;
+   entry.label.title=!standing?entry.physics.reason:!released?'Starts after support collection.':
+     `${standing.elapsed.toFixed(2)} / ${STANDING_DURATION.toFixed(2)} s; current tilt ${standing.tiltDeg.toFixed(2)}°; maximum tilt so far ${standing.maxTiltDeg.toFixed(2)}°. Orientation threshold only, not certified standing.`;
    const weighed=t>=WEIGH_TIME&&entry.weight;
    entry.weightLabel.classList.toggle('is-weighed',Boolean(weighed));
    entry.weightLabel.querySelector('b').textContent=weighed?`${entry.weight.support.toFixed(2)} g`:'— g';
@@ -163,14 +288,38 @@ async function initialise(){
    entry.weightLabel.title=entry.weight?`Support / (body + support): ${entry.weight.support} / (${entry.weight.body} + ${entry.weight.support}) g. Slicer estimate, not a physical measurement.`:'Weight data unavailable';
  }
  function updateUI(){
-   const seconds=Math.max(0,time-RELEASE);clock.innerHTML=`${seconds.toFixed(2)} <small>/ 10.00 s</small>`;
-   phase.textContent=!ready?'Loading 3D examples':time<.9?'01 · Supports attached':time<SWEEP_START?'02 · Supports break apart':time<WEIGH_TIME?'03 · Sweep onto the scale':time<RELEASE?'04 · Support weight & share':!simulationReady?'Support weight & share · simulation pending':time<duration?'05 · Rigid-body simulation':'05 · Simulation complete';
+   const seconds=clamp(time-RELEASE,0,STANDING_DURATION);clock.innerHTML=`${seconds.toFixed(2)} <small>/ ${STANDING_DURATION.toFixed(2)} s</small>`;
+   clock.parentElement.querySelector('span').textContent=simulationReady?'Rigid-body replay':'Replay unavailable';
+   phase.textContent=!ready?'Loading 3D examples':time<.9?'01 · Supports attached':time<SWEEP_START?'02 · Supports break apart':time<WEIGH_TIME?'03 · Sweep onto the scale':time<RELEASE?'04 · Support weight & share':!simulationReady?'Support weight & share · rigid-body replay unavailable':time<duration?'05 · Rigid-body replay':'05 · Rigid-body replay complete · 10 s';
    if(!simulationReady)clock.textContent='—';
-   positionLabel.textContent=!simulationReady||time<RELEASE?`${time.toFixed(1)} s · visualisation`:`${seconds.toFixed(1)} s · simulation`;
+   positionLabel.textContent=!simulationReady||time<RELEASE?`${time.toFixed(1)} s · support animation`:`${seconds.toFixed(1)} s · rigid-body replay`;
    play.textContent=playing?'Ⅱ Pause':time>=duration?'↻ Play again':'▶ Play';play.setAttribute('aria-pressed',String(playing));slider.value=time;
-   host.dataset.ready=String(ready);host.dataset.time=time.toFixed(3);host.dataset.simulationTime=seconds.toFixed(3);host.dataset.playing=String(playing);
+   host.dataset.ready=String(ready);host.dataset.time=time.toFixed(3);host.dataset.simulationTime=seconds.toFixed(3);host.dataset.playing=String(playing);host.dataset.simulationReady=String(simulationReady);host.dataset.standingReleased=String(time>=RELEASE);
    const weighed=time>=WEIGH_TIME;host.dataset.weighed=String(weighed);if(host.dataset.detailState!==`${selected}-${weighed}`)updateMassDetail();
    host.querySelectorAll('[data-support-stage]').forEach(button=>{const stageTime=Number(button.dataset.supportStage);button.setAttribute('aria-pressed',String(stageTime===0?time<.9:stageTime<WEIGH_TIME?time>=.9&&time<WEIGH_TIME:weighed));});
+   host.querySelectorAll('[data-standing-stage]').forEach(button=>{button.disabled=!ready||!simulationReady;button.setAttribute('aria-pressed',String(time>=RELEASE));});
+   if(sceneMode==='slice'){phase.textContent='Display-mesh cutaway';host.dataset.playing='false';}
+   else if(sceneMode==='standing'&&!simulationReady){phase.textContent='Standing test unavailable · not simulated';clock.textContent='—';positionLabel.textContent='No validated standing replay';}
+   updateStandingDetail();
+ }
+ function updateStandingDetail(force=false){
+   if(!standingDetail)return;
+   const stateKey=`${selected}-${Math.floor(time*5)}-${ready}`;
+   if(!force&&standingDetailKey===stateKey)return;standingDetailKey=stateKey;
+   standingDetail.replaceChildren();
+   const scoped=selected?bodies.filter(entry=>entry.g.id===selected):bodies;
+   if(!scoped.length){standingDetail.textContent='Loading rigid-body replay data.';return;}
+   for(const entry of scoped){
+     const card=document.createElement('div');card.className='standing-detail-card';
+     const title=document.createElement('strong');title.textContent=`${selected?'':entry.g.name+' · '}${entry.method==='sas'?'PhysRL3D · SAS':'TRELLIS.2'}`;
+     const output=document.createElement('output'),note=document.createElement('small');
+     // Sample the requested timeline position, never a previous rendered frame.
+     const sampled=sampleStanding(entry.physics,Math.max(0,time-RELEASE));
+     if(!sampled){output.textContent='Test unavailable · Not simulated';note.textContent=entry.physics.reason;}
+     else if(time<RELEASE){output.textContent='Ready · 10-second replay begins after support removal';note.textContent='Original generated pose; no initial reorientation.';}
+     else {output.textContent=`Tilt ${sampled.tiltDeg.toFixed(1)}° · ${sampled.state}`;note.textContent=`${sampled.complete?'Complete · ':''}${sampled.elapsed.toFixed(1)} / ${STANDING_DURATION.toFixed(1)} s · peak tilt ${sampled.maxTiltDeg.toFixed(1)}°`;}
+     card.append(title,output,note);if(entry.physics.caution){const caution=document.createElement('small');caution.textContent=entry.physics.caution;card.append(caution);}standingDetail.append(card);
+   }
  }
  function updateMassDetail(){
    const detail=host.querySelector('.support-mass-detail');host.dataset.detailState=`${selected}-${time>=WEIGH_TIME}`;
@@ -187,7 +336,7 @@ async function initialise(){
    const w=stage.clientWidth,h=stage.clientHeight;
    function place(label,point,visible){p.copy(point).project(camera);label.hidden=!visible||p.z>1||p.z< -1||Math.abs(p.x)>1.2||Math.abs(p.y)>1.2;label.style.left=`${(p.x*.5+.5)*w}px`;label.style.top=`${(-p.y*.5+.5)*h}px`;}
    for(const g of groups)place(g.label,new THREE.Vector3(g.x,g.y+112,24),g.root.visible&&!selected);
-   for(const e of bodies){e.leader.hidden=e.weightLeader.hidden=true;const focused=e.g.id===selected;place(e.label,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-41,10),!selected||focused);place(e.weightLabel,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-105,8),focused);}
+   for(const e of bodies){e.leader.hidden=e.weightLeader.hidden=true;const focused=e.g.id===selected;place(e.label,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-41,10),!selected||focused);place(e.weightLabel,new THREE.Vector3(e.g.x+e.offset.position.x,e.g.y-105,8),sceneMode!=='slice'&&focused&&time<RELEASE);}
    // Keep labels readable at oblique angles and extreme zoom. Short leader lines
    // preserve the connection to each original projected model or scale position.
    if(selected){
@@ -210,25 +359,29 @@ async function initialise(){
  }
  function tick(now){
    frame=0;if(!active())return;if(now-last<30){schedule();return;}const dt=Math.min(.1,(now-last)/1000);last=now;
-   if(playing&&ready){time=Math.min(duration,time+dt);if(time>=duration)playing=false;}
+   if(sceneMode!=='slice'&&playing&&ready){time=Math.min(duration,time+dt);if(time>=duration)playing=false;}
+   if(sceneMode==='slice'&&sliceAuto&&!reduced){sliceFraction=Math.max(0,sliceFraction-dt/14);sliceDirty=true;if(sliceFraction<=0)sliceAuto=false;}
    if(cameraGoal){const ease=1-Math.exp(-5*dt);camera.position.lerp(cameraGoal,ease);controls.target.lerp(targetGoal,ease);if(viewGoal){const v=camera.view||{offsetX:0,offsetY:0};camera.setViewOffset(stage.clientWidth,stage.clientHeight,THREE.MathUtils.lerp(v.offsetX,viewGoal.x,ease),THREE.MathUtils.lerp(v.offsetY,viewGoal.y,ease),stage.clientWidth,stage.clientHeight);}if(camera.position.distanceTo(cameraGoal)<.15){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;settleView();}}
-   if(time!==renderedTime){for(const e of bodies)applyBody(e,time);renderedTime=time;updateUI();}controls.update();projectLabels();renderer.render(scene,camera);schedule();
+   if(sceneMode==='slice'){if(sliceDirty&&now-lastSliceUpdate>90){applySlice();lastSliceUpdate=now;}}
+   else if(time!==renderedTime){for(const e of bodies)applyBody(e,time);renderedTime=time;updateUI();}
+   controls.update();projectLabels();renderer.render(scene,camera);schedule();
  }
- function active(){return (inView||dialog.open)&&!document.hidden&&!contextLost;}
+ function active(){return (dialog.open||(inView&&host.dataset.atlasActive!=='false'))&&!document.hidden&&!contextLost;}
  function schedule(){if(!frame&&active())frame=requestAnimationFrame(tick);}
- const seek=t=>{playing=false;time=clamp(t,0,duration);updateUI();schedule();};
+ const seek=t=>{if(sceneMode==='slice')return;playing=false;time=clamp(t,0,duration);updateUI();updateStandingDetail(true);schedule();};
  slider.addEventListener('input',()=>seek(Number(slider.value)));
  host.querySelectorAll('[data-support-stage]').forEach(button=>button.addEventListener('click',()=>{if(ready)seek(Number(button.dataset.supportStage));}));
- play.addEventListener('click',()=>{if(time>=duration)time=0;playing=!playing;last=performance.now();updateUI();schedule();});
- replay.addEventListener('click',()=>{time=0;playing=true;last=performance.now();updateUI();schedule();});
+ host.querySelectorAll('[data-standing-stage]').forEach(button=>button.addEventListener('click',()=>{if(ready&&simulationReady){setMode('standing');seek(RELEASE);if(!reduced){playing=true;last=performance.now();updateUI();schedule();}}}));
+ play.addEventListener('click',()=>{if(sceneMode==='slice'||(sceneMode==='standing'&&!simulationReady))return;if(time>=duration)time=sceneMode==='standing'?RELEASE:0;playing=!playing;last=performance.now();updateUI();schedule();});
+ replay.addEventListener('click',()=>{if(sceneMode==='slice'||(sceneMode==='standing'&&!simulationReady))return;time=sceneMode==='standing'?RELEASE:0;playing=true;last=performance.now();updateUI();schedule();});
  host.querySelector('[data-physics-overview]').addEventListener('click',()=>fit());
  host.querySelectorAll('[data-physics-zoom]').forEach(b=>b.addEventListener('click',()=>{const factor=b.dataset.physicsZoom==='in'?.8:1.25;targetGoal=controls.target.clone();const offset=camera.position.clone().sub(targetGoal);offset.setLength(clamp(offset.length()*factor,controls.minDistance,controls.maxDistance));cameraGoal=targetGoal.clone().add(offset);if(reduced){camera.position.copy(cameraGoal);cameraGoal=targetGoal=null;controls.update();}schedule();}));
  stage.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='r'){e.preventDefault();fit(selected);}if(e.key===' '){e.preventDefault();if(ready)play.click();}});
  let down=null;renderer.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
- renderer.domElement.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(bodies.filter(b=>b.g.root.visible).map(b=>b.body),true);if(hits[0]?.object.userData.example)fit(hits[0].object.userData.example);});
+ renderer.domElement.addEventListener('pointerup',e=>{if(sceneMode==='slice'||!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(bodies.filter(b=>b.g.root.visible).map(b=>b.body),true);if(hits[0]?.object.userData.example)fit(hits[0].object.userData.example);});
  host.querySelector('[data-physics-expand]').addEventListener('click',e=>{if(dialog.open){dialog.close();return;}returnFocus=e.currentTarget;placeholder=document.createComment('physics viewer');host.replaceWith(placeholder);dialog.querySelector('.physics-dialog-content').append(host);dialog.showModal();controls.enableZoom=true;renderer.domElement.style.touchAction='none';resize();fit(selected,true);schedule();});
  document.querySelector('[data-physics-close]').addEventListener('click',()=>dialog.close());
- dialog.addEventListener('close',()=>{controls.enableZoom=false;renderer.domElement.style.touchAction='pan-y';if(placeholder){placeholder.replaceWith(host);placeholder=null;resize();fit(selected,true);returnFocus?.focus();}schedule();});
+ dialog.addEventListener('close',()=>{controls.enableZoom=false;renderer.domElement.style.touchAction='pan-y';if(placeholder){placeholder.replaceWith(host);placeholder=null;resize();fit(selected,true);returnFocus?.focus({preventScroll:true});}schedule();});
  dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
 
  let count=0;
@@ -238,7 +391,11 @@ async function initialise(){
      await addBody(g,method);count++;
    }
  }
- ready=true;simulationReady=bodies.every(b=>b.physics);duration=RELEASE+(simulationReady?10:0);slider.max=duration;loading.hidden=true;play.disabled=replay.disabled=slider.disabled=false;playing=!reduced;
- host.dataset.models=String(count);host.dataset.engine=simulationReady?'MuJoCo precomputed replay':'Illustrative support removal and slicer-estimated weighing';updateUI();schedule();
+ ready=true;simulationReady=bodies.some(b=>b.physics.status==='ready');duration=RELEASE+(simulationReady?STANDING_DURATION:0);slider.max=duration;loading.hidden=true;play.disabled=replay.disabled=slider.disabled=false;sliceButton.disabled=false;playing=!reduced;
+ host.dataset.replayCount=String(bodies.filter(b=>b.physics.status==='ready').length);
+ syncMethodLabels();
+ const standingSummary=host.querySelector('[data-standing-summary]');if(standingSummary)standingSummary.textContent=`${host.dataset.replayCount} of ${bodies.length} models have a validated 10-second rigid-body replay. Unavailable models are explicitly marked and are not classified.`;
+ host.dataset.models=String(count);host.dataset.engine=simulationReady?'MuJoCo precomputed replay':'Illustrative support removal and slicer-estimated weighing';
+ setMode(pendingMode);updateUI();schedule();host.dispatchEvent(new CustomEvent('physrl3d:ready',{detail:{mode:sceneMode},bubbles:true}));
 }
 initialise().catch(error=>{console.error('Paired 3D scene unavailable',error);loading.hidden=false;loading.textContent='The 3D scene could not load. Please reload, or explore the real-print photos below.';phase.textContent='3D scene unavailable';});

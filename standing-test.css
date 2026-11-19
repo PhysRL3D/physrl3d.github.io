@@ -1,0 +1,39 @@
+/* Orientation readouts, not a certification of printability or static balance. */
+.physics-body-label .standing-body-readout {
+  display: grid;
+  gap: 3px;
+  margin-top: 7px;
+  padding-top: 6px;
+  border-top: 1px solid #b6d1dd42;
+  color: #e6f1f8;
+  font: 500 .875rem/1.25 ui-sans-serif, sans-serif;
+  letter-spacing: 0;
+}
+.standing-body-readout [data-standing-tilt] { font-variant-numeric: tabular-nums; }
+.standing-body-readout [data-standing-state] { color: #c3d3df; font-size: .75rem; }
+.physics-body-label[data-standing-state="rotated"] .standing-body-readout { color: #ffdcad; }
+.physics-body-label[data-standing-state="unavailable"] .standing-body-readout { color: #d0c8bf; }
+.physics-viewer[data-focus="all"]:not([data-standing-released="true"]) .standing-body-readout { display: none; }
+.physics-viewer[data-focus="all"][data-standing-released="true"] .standing-body-readout { display: grid; margin-top: 4px; padding-top: 4px; }
+.physics-viewer[data-focus="all"] .standing-body-readout [data-standing-tilt] { display: none; }
+.standing-detail { margin-top: 14px; display: grid; gap: 10px; color: #dce8f0; font-size: .875rem; line-height: 1.5; }
+.standing-detail p { margin: 0; }
+.standing-detail-card { border-top: 1px solid #63829455; padding-top: 10px; }
+.standing-detail-card strong { display: block; margin-bottom: 4px; font-size: .875rem; }
+.standing-detail-card output { font-variant-numeric: tabular-nums; }
+.standing-detail-card small { display: block; color: #b8cbd6; font-size: .75rem; margin-top: 4px; }
+.standing-disclaimer { color: #b8cbd6; font-size: .75rem; line-height: 1.5; }
+[data-standing-summary] { font-size: .875rem; line-height: 1.5; }
+.physics-clock > span { font-size: .75rem; letter-spacing: .04em; }
+.physics-clock output small { font-size: .75rem; }
+.physics-extra-panel [data-standing-stage] { min-height: 44px; font-size: .875rem; }
+@media (max-width: 680px) {
+  .physics-body-label .standing-body-readout { font-size: .8125rem; gap: 2px; padding-top: 5px; margin-top: 5px; }
+  .physics-clock > span { font-size: .6875rem; }
+  .physics-clock output { display:block; font-size:18px; line-height:1.25; }
+}
+@media (max-height:500px) and (min-width:681px) {
+  .physics-clock { display:block; }
+  .physics-clock output { display:block; font-size:18px; line-height:1.2; }
+  .physics-clock > span { font-size:10px; }
+}

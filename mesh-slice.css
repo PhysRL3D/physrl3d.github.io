@@ -1,0 +1,33 @@
+.mesh-slice-controls { display: none; }
+.physics-viewer[data-scene-mode="slice"] .mesh-slice-controls { display: grid; gap: 7px; margin: 9px 0; }
+.mesh-slice-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: #edf6ff; font-size: .875rem; }
+.mesh-slice-actions { display: flex; gap: 6px; }
+.spatial-controls .mesh-slice-actions button { min-height: 44px; padding: 5px 10px; font-size: .875rem; }
+.mesh-slice-range { display: flex; gap: 12px; align-items: center; color: #d6edf5; font-size: .875rem; }
+.mesh-slice-range input { flex: 1; min-width: 60px; accent-color: #55dce2; height: 24px; touch-action: pan-x; }
+.mesh-slice-range output { min-width: 46px; text-align: right; font-variant-numeric: tabular-nums; }
+.mesh-slice-heights { color: #83e0e7; font-size: .875rem; line-height: 1.45; font-variant-numeric: tabular-nums; }
+.mesh-slice-disclosure { color: #bbccd8; font-size: .75rem; line-height: 1.4; margin: 0 !important; }
+.mesh-slice-controls button:disabled { opacity: .55; }
+.physics-viewer[data-scene-mode="slice"] :is(.physics-scrubber, .physics-clock, .physics-caption, [data-physics-play], .physics-extra, .standing-body-readout, .standing-sensitive-badge) { display: none !important; }
+.physics-viewer[data-scene-mode="slice"] .physics-topline { pointer-events: none; }
+.physics-viewer[data-scene-mode="slice"] [data-physics-slice] { background: #52cbd1; color: #102d34; border-color: #82eff2; }
+.physics-viewer[data-scene-mode="slice"] .physics-picker small { color: #bed9e3; }
+.physics-viewer[data-scene-mode="slice"] .physics-body-label { border-color: #76a8b7; }
+.physics-viewer[data-scene-mode="slice"] .physics-stage canvas { cursor: grab; }
+@media (max-width: 680px) {
+  .spatial-controls .physics-toolbar { flex-wrap: wrap; }
+  .spatial-gallery .physics-topline, #physics-dialog .physics-topline { bottom: calc(var(--physics-control-height, 170px) + 16px); }
+  .mesh-slice-controls { gap: 5px !important; margin: 5px 0 !important; }
+  .mesh-slice-heading { font-size: .875rem; }
+  .spatial-controls .mesh-slice-actions button { min-height: 44px; padding-inline: 8px; font-size: .875rem; }
+  .mesh-slice-disclosure { font-size: .75rem; }
+  .mesh-slice-range, .mesh-slice-heights { font-size: .875rem; }
+  .physics-viewer[data-scene-mode="slice"] .physics-topline { display: none; }
+}
+@media (max-height: 600px) and (min-width: 681px) {
+  .physics-viewer[data-scene-mode="slice"] .spatial-controls { display: block; }
+  .physics-viewer[data-scene-mode="slice"] .mesh-slice-controls { margin-block: 4px; gap: 4px; }
+  .physics-viewer[data-scene-mode="slice"] .mesh-slice-disclosure { max-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { [data-slice-sweep] { display: none; } }

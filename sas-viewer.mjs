@@ -34,12 +34,13 @@ document.getElementById('mesh-dialog-close').addEventListener('click', () => dia
 dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
 dialog.addEventListener('close', () => {
   if (!expanded) return;
-  const { host, placeholder, button } = expanded;
+  const { host, placeholder, button, restoreInline } = expanded;
   placeholder.replaceWith(host);
   host.classList.remove('in-dialog');
   button.textContent = '⤢ Larger view';
   document.body.classList.remove('mesh-dialog-open');
   expanded = null;
+  restoreInline();
   button.focus({ preventScroll: true });
 });
 
@@ -66,9 +67,15 @@ function createViewer(host) {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
-  controls.enableZoom = true;
   controls.enablePan = false;
   controls.zoomSpeed = 0.8;
+  function setExpandedInteraction(value) {
+    controls.enableZoom = value;
+    // Both canvas and parent must allow page gestures; touch-action is intersected.
+    renderer.domElement.style.touchAction = value ? 'none' : 'pan-y';
+    stage.style.touchAction = value ? 'none' : 'pan-y';
+  }
+  setExpandedInteraction(false);
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const spinButton = host.querySelector('.viewer-spin');
   controls.autoRotateSpeed = 1.2;
@@ -122,25 +129,33 @@ function createViewer(host) {
     } else resetView();
   }
   function resize() {
-    const rect = stage.getBoundingClientRect();
-    if (rect.width < 1 || rect.height < 1) return;
-    renderer.setSize(rect.width, rect.height, false);
-    camera.aspect = rect.width / rect.height;
+    const width = stage.clientWidth, height = stage.clientHeight;
+    if (width < 1 || height < 1) return;
+    renderer.setSize(width, height, false);
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
     if (Math.abs(camera.aspect - fittedAspect) > 0.001) {
       fittedAspect = camera.aspect;
       fitCamera(true);
     }
   }
+  function atlasPaperActive() {
+    const state = document.documentElement.dataset;
+    return state.atlasMode !== 'space' || (state.atlasZone === 'paper' && state.atlasMoving !== 'true');
+  }
+  function isActive() {
+    const inDialog = dialog.open && expanded?.host === host;
+    return !document.hidden && !contextLost && (inDialog || (!dialog.open && inView && atlasPaperActive()));
+  }
   function animate() {
     frameId = 0;
-    if (!inView || document.hidden || contextLost) return;
+    if (!isActive()) return;
     controls.update();
     renderer.render(scene, camera);
     frameId = requestAnimationFrame(animate);
   }
   function updateActivity() {
-    if (!inView || document.hidden || contextLost) {
+    if (!isActive()) {
       cancelAnimationFrame(frameId);
       frameId = 0;
     } else if (!frameId) frameId = requestAnimationFrame(animate);
@@ -151,6 +166,8 @@ function createViewer(host) {
     updateActivity();
   }).observe(stage);
   document.addEventListener('visibilitychange', updateActivity);
+  document.addEventListener('physrl3d:atlas-zone', () => { resize(); updateActivity(); });
+  dialog.addEventListener('close', updateActivity);
   controls.addEventListener('change', updateZoom);
   renderer.domElement.addEventListener('webglcontextlost', event => {
     event.preventDefault();
@@ -230,10 +247,12 @@ function createViewer(host) {
     dialogContent.append(host);
     host.classList.add('in-dialog');
     expandButton.textContent = '↙ Return to page';
-    expanded = { host, placeholder, button: expandButton };
+    expanded = { host, placeholder, button: expandButton, restoreInline: () => { setExpandedInteraction(false); resize(); updateActivity(); } };
     document.body.classList.add('mesh-dialog-open');
     dialog.showModal();
+    setExpandedInteraction(true);
     resize();
+    updateActivity();
   });
   stage.addEventListener('keydown', event => {
     if (event.key === 'r' || event.key === 'R') { event.preventDefault(); resetView(); }
