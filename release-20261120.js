@@ -10,6 +10,16 @@
     <div class="release-heading"><div><p class="eyebrow">SAS IN MOTION · 32 SECONDS</p><h2 id="sas-film-title">Standability first.<br><span>Balance as it improves.</span></h2></div><p>Three reward aspects. One adaptive schedule.<br>Follow the gate and the changing weight shares.</p></div>
     <video controls playsinline preload="none" poster="static/film/sas-poster.png" aria-label="32-second SAS mechanism illustration with a synchronized timeline"><source src="static/film/sas-32s.mp4" type="video/mp4"><track kind="captions" src="static/film/sas-captions.vtt" srclang="en" label="English"></video>
     <div class="film-meta"><p>Mechanism illustration using the paper's worked example, not training logs or generated checkpoints. The clock shows clip time, not training epochs.</p><a href="film/#sas">Open animation</a><a href="static/film/sas-32s.mp4" download>Download MP4</a></div>
+    <div class="sas-interactive" data-sas-interactive>
+      <div class="sas-interactive-heading"><div><p class="eyebrow">INTERACTIVE MECHANISM</p><h3>Move through the schedule.</h3></div><p>Drag the training-progress slider to see how the illustrative gate shifts emphasis from standability toward geometry and material.</p></div>
+      <label class="sas-progress"><span>Training progress</span><input data-sas-progress type="range" min="0" max="100" value="0" step="1"><output data-sas-progress-value>0%</output></label>
+      <div class="sas-bars" aria-live="polite">
+        <div class="sas-bar-row"><span>Standability gate</span><div class="sas-bar-track"><i data-sas-bar="stand"></i></div><output data-sas-value="stand">70%</output></div>
+        <div class="sas-bar-row"><span>Geometry / fidelity</span><div class="sas-bar-track"><i data-sas-bar="fidelity"></i></div><output data-sas-value="fidelity">20%</output></div>
+        <div class="sas-bar-row"><span>Material efficiency</span><div class="sas-bar-track"><i data-sas-bar="material"></i></div><output data-sas-value="material">10%</output></div>
+      </div>
+      <p class="sas-interactive-note">Illustrative SAS mechanism based on the worked example. The slider is not a live training control and does not query or change the checkpoint.</p>
+    </div>
     <div class="inference-entry"><h3>From your image to a new 3D model.</h3><p>Connect an authenticated GPU service to run a trained PhysRL3D checkpoint. The model weights stay on the server.</p><a href="generate/">Open generation workspace</a><small>GPU connection required. This site does not currently provide public GPU inference.</small></div>
   </section>`);
   document.getElementById('comparisons').insertAdjacentHTML('afterend', `<section id="more-examples" class="release-section" aria-labelledby="more-examples-title">
@@ -29,4 +39,25 @@
   });
   const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(!e.isIntersecting)e.target.pause();}),{threshold:.05});
   document.querySelectorAll('#film video, #sas-film video').forEach(v=>observer.observe(v));
+  const sas=document.querySelector('[data-sas-interactive]');
+  if(sas){
+    const input=sas.querySelector('[data-sas-progress]');
+    const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+    const update=()=>{
+      const p=Number(input.value)/100;
+      // Illustrative schedule: standability is secured first, then the remaining
+      // budget is shared by fidelity and material according to the example.
+      const stand=Math.round(70-32*p);
+      const fidelity=Math.round(20+24*p);
+      const material=100-stand-fidelity;
+      const values={stand,fidelity,material};
+      sas.querySelector('[data-sas-progress-value]').value=`${Math.round(p*100)}%`;
+      sas.querySelector('[data-sas-progress-value]').textContent=`${Math.round(p*100)}%`;
+      Object.entries(values).forEach(([key,value])=>{
+        sas.querySelector(`[data-sas-bar="${key}"]`).style.width=`${clamp(value,0,100)}%`;
+        const out=sas.querySelector(`[data-sas-value="${key}"]`); out.value=`${value}%`; out.textContent=`${value}%`;
+      });
+    };
+    input.addEventListener('input',update); update();
+  }
 })();
