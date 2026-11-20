@@ -9,7 +9,7 @@ import {showcaseTimeline,playbackSpeed,nextExampleIndex,displayPositions,COMPARE
 
 const ROOT='static/physics-20261118/';
 const STANDING_ROOT='static/standing-20261119/';
-const examples=[['chair','Chair'],['cat','Cat'],['poodle','Poodle'],['xmastree','Christmas tree'],['penguin','Penguin'],['koala','Koala'],['kangaroo','Kangaroo']];
+const examples=[['cat','Cat'],['poodle','Poodle'],['xmastree','Christmas tree'],['penguin','Penguin'],['koala','Koala'],['kangaroo','Kangaroo']];
 const DISPLAY_ONLY=new Set(['koala','kangaroo']);
 const inputSource=id=>DISPLAY_ONLY.has(id)?`static/images/input_${id}.png`:`static/support-shatter-20261118/${id}-input.jpg`;
 const RELEASE=RELEASE_TIME;
@@ -44,7 +44,7 @@ let reduced=motionPreference.matches;
  const bodyMaterial=new THREE.MeshStandardMaterial({color:0xeeeae4,roughness:.62,metalness:0});
  const supportMaterial=new THREE.MeshStandardMaterial({color:0x258bdf,roughness:.5,metalness:.08});
  const supportCube=new THREE.BoxGeometry(1,1,1),loader=new GLTFLoader();
- const groups=[],bodies=[];let selected=oursOnly?null:'chair',ready=false,simulationReady=false,time=0,playing=false,inView=false,contextLost=false,duration=RELEASE;
+ const groups=[],bodies=[];let selected=oursOnly?null:'cat',ready=false,simulationReady=false,time=0,playing=false,inView=false,contextLost=false,duration=RELEASE;
  let action=host.dataset.requestedAction||(oursOnly?'sequence':'supports'),showcaseTime=0,showcaseState=null,speed=1,browseEnabled=!oursOnly,browseTime=0,hovered=false,gesture=false,gestureUntil=0;
  let lastShowcasePhase='',lastSelection='',lastUIUpdate=0,displayYaw=0,explicitPlayback=false;
  let spinEnabled=true,visibleMethod='both',fittedDistance=1;
@@ -73,11 +73,11 @@ let reduced=motionPreference.matches;
  motionPreference.addEventListener('change',event=>{reduced=event.matches;if(reduced){playing=false;explicitPlayback=false;sliceAuto=false;updateSliceControls();inputAnimation?.cancel();if(cameraGoal){camera.position.copy(cameraGoal);controls.target.copy(targetGoal);cameraGoal=targetGoal=null;controls.update();}settleView();updateUI();schedule();}});
 
  function fit(id=null,instant=false){
-   if(!oursOnly&&!id)id=selected||'chair';
+   if(!oursOnly&&!id)id=selected||'cat';
    selected=id;const group=groups.find(g=>g.id===id);
    host.dataset.focus=id||'all';updateMassDetail();updateStandingDetail(true);
    const input=host.querySelector('.pair-input');
-   input.querySelector('img').src=inputSource(id||'chair');
+   input.querySelector('img').src=inputSource(id||'cat');
    input.querySelector('img').alt=group?`${group.name}: conditioning image`:'Select an example to see its conditioning image';
    input.querySelector('h3').textContent=group?group.name:'Seven PhysRL3D examples';
    input.querySelector('[data-pair-number]').textContent=group?`${examples.findIndex(e=>e[0]===id)+1} / ${examples.length}`:'ALL SAS EXAMPLES';
@@ -206,10 +206,10 @@ let reduced=motionPreference.matches;
    }
    if(next==='slice'){
      savedSliceState={time,playing,selected};playing=false;sliceAuto=false;sliceFraction=1;
-     if(!oursOnly)selected=selected||'chair';sceneMode=next;host.dataset.sceneMode=next;applySlice();
+     if(!oursOnly)selected=selected||'cat';sceneMode=next;host.dataset.sceneMode=next;applySlice();
    }else{
      sceneMode=next;host.dataset.sceneMode=next;
-     if(next==='standing'){playing=false;time=RELEASE;if(!oursOnly)selected=selected||'chair';}
+     if(next==='standing'){playing=false;time=RELEASE;if(!oursOnly)selected=selected||'cat';}
      for(const entry of bodies)applyBody(entry,time);renderedTime=time;
    }
    syncInspectVisibility();
