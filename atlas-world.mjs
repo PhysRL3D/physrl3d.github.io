@@ -12,7 +12,7 @@ if (main && home && host && clips && !document.getElementById('atlas-track')) in
 
 function initialiseAtlas() {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  const samples = [['chair', 'Chair'], ['cat', 'Cat'], ['poodle', 'Poodle'], ['xmastree', 'Christmas tree'], ['penguin', 'Penguin']];
+  const samples = [ ['cat', 'Cat'], ['poodle', 'Poodle'], ['xmastree', 'Christmas tree'], ['penguin', 'Penguin']];
   const originalNodes = [...main.childNodes];
   const make = (tag, className, text) => {
     const node = document.createElement(tag);
