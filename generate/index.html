@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer"><title>PhysRL3D · Generate</title>
+<link rel="icon" href="/favicon.ico?v=20261120loop1"><link rel="stylesheet" href="generate.css?v=1">
+<link rel="icon" type="image/svg+xml" href="/static/brand/physrl3d-mark.svg?v=20261120loop1">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/brand/favicon-32.png?v=20261120loop1">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/brand/favicon-180.png?v=20261120loop1">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"}}</script>
+<script type="module" src="generate.mjs?v=1"></script>
+</head><body>
+<header><a href="../"><img src="../static/brand/physrl3d-lockup.svg?v=20261120loop1" alt="PhysRL3D" width="174" height="42"></a><nav><a href="../film/#sas">SAS in motion</a><a href="../#comparisons">Explore examples</a></nav></header>
+<main>
+<p class="eyebrow">IMAGE TO 3D · CHECKPOINT INFERENCE</p>
+<h1>Your image.<br><span>A new physical shape.</span></h1>
+<p class="lead">Generate with a trained PhysRL3D checkpoint. Inspect the textured model, then take it with you.</p>
+<section class="connection" aria-labelledby="connection-title">
+<div class="connection-heading"><h2 id="connection-title">Connect your GPU service</h2><p id="connection-status" role="status">Not connected · public GPU inference is not enabled.</p></div>
+<p>The project page cannot run the model by itself. An authenticated GPU service must load your checkpoint; weights never enter the browser.</p>
+<form id="connect-form"><label>Service URL<input id="endpoint" type="url" placeholder="https://your-gpu-service.example" autocomplete="off" required></label><label>Private access key<input id="access-key" type="password" autocomplete="off" spellcheck="false" required aria-describedby="key-note"></label><button id="connect" type="submit">Connect</button><button id="disconnect" type="button" disabled>Disconnect</button></form>
+<p id="key-note" class="small">The key stays in this tab's memory, is sent only to the service you choose, and is not stored in the website or browser storage. Only connect to a service you trust.</p>
+<p id="model-info" class="model-info" hidden></p>
+</section>
+<div class="workspace">
+<section class="input-panel" aria-labelledby="input-title"><p class="eyebrow">INPUT</p><h2 id="input-title">Start with one image.</h2>
+<form id="generate-form">
+<label class="upload">Choose an image<input id="image" type="file" accept="image/png,image/jpeg,image/webp" required><span>PNG, JPEG or WebP · up to 8 MB</span></label>
+<img id="input-preview" alt="Your selected conditioning image" hidden>
+<label>Generation seed<input id="seed" type="number" min="0" max="2147483647" step="1" value="42" required></label>
+<label class="consent"><input id="consent" type="checkbox" required><span>Send this image to the connected service to generate a model. Inputs and results are temporary and are not published to the project gallery.</span></label>
+<button id="generate" type="submit" class="primary" disabled>Generate 3D model</button>
+<p id="submit-hint" class="small">Connect a verified GPU service to enable generation.</p>
+</form></section>
+<section class="output-panel" aria-labelledby="output-title"><div class="output-heading"><div><p class="eyebrow">OUTPUT</p><h2 id="output-title">Made from your image.</h2></div><span id="elapsed" hidden></span></div>
+<div id="viewer" role="region" aria-label="Generated 3D model viewer"><div id="placeholder"><img src="../static/brand/physrl3d-mark.svg" alt="" width="84" height="84"><h3>Your model will appear here.</h3><p>No example mesh is substituted for a generation result.</p></div></div>
+<p id="job-status" role="status" aria-live="polite">Waiting for a GPU connection.</p><progress id="progress" hidden aria-label="Generation in progress"></progress>
+<div class="output-actions"><button id="reset-view" disabled>Reset view</button><button id="rotate" disabled aria-pressed="false">Auto-rotate</button><a id="download" hidden download="physrl3d.glb">Download GLB</a></div>
+<p class="small">Drag to orbit; scroll or pinch to zoom. Textures are preserved when supplied by the inference pipeline. Mesh appearance does not certify standability or printability.</p>
+</section></div>
+<section class="notes"><h2>Trained weights, not live reward sliders.</h2><p>SAS adjusts reward weights during post-training. This workspace runs the resulting model checkpoint; changing a generation seed does not retrain it or change SAS's training objectives.</p><p>Generation stays unavailable until a service has loaded and verified its configured checkpoint. No GPU job starts merely by opening this page.</p></section>
+</main><footer><a href="../">PhysRL3D</a><span>Standability · Material efficiency · Geometric fidelity</span></footer>
+</body></html>

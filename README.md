@@ -2,6 +2,14 @@
 
 Static page, no build step: `index.html` + `static/`. Anonymous while the paper is under review.
 
+## SAS animation and generation workspace
+
+- `film/#sas` and the homepage's `#sas-film` section show the 32-second SAS mechanism animation with its clip-time progress bar. Its media hash and illustration caveat are recorded in `static/film/sas-manifest.json`.
+- `generate/` is an authenticated checkpoint-inference frontend: image input, seed, job polling, textured GLB inspection and download. Public GPU inference is **not enabled**; `generate/config.json` deliberately has no configured endpoint.
+- Connect only an approved HTTPS service implementing `physrl3d-inference-v1`. The private key stays in tab memory. Never commit credentials, model weights, private GPU addresses or training paths to this repository.
+- The service must verify its checkpoint before reporting ready, protect uploads/status/downloads with authentication, enforce job limits and expire temporary files. Changing reward weights is a post-training operation, not a feature of this inference frontend.
+- Run `node --test tools/release.test.cjs tools/brand.test.cjs tools/inference.test.cjs` for website regression checks. Passing these tests does not validate a GPU model run.
+
 This revision adds the anonymized method overview, physics-simulation evidence, 360-degree mesh turntables, and interactive mesh viewers, following the narrative structure of an academic project page: abstract, method, simulation evidence, and real-world evidence.
 
 ## Preview locally

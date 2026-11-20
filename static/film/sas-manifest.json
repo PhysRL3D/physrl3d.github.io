@@ -1,0 +1,10 @@
+{
+  "duration": 32,
+  "resolution": [1920, 1080],
+  "fps": 30,
+  "sha256": "40cd39498c9e10a1113472ec41a3d0c1c5b3a29bdea3604d80b49575044c5d5b",
+  "file": "sas-32s.mp4",
+  "source": "SAS worked example in the supplementary material",
+  "timeline": "Clip seconds, not training epochs",
+  "note": "Schematic geometry and illustrative interpolation, not checkpoint evolution or training logs. Bars represent scheduled weight shares, not reward values or gradient shares."
+}

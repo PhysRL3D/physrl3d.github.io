@@ -1,0 +1,21 @@
+WEBVTT
+
+00:00.000 --> 00:07.000
+Low standability attainment suppresses the fidelity and material weights.
+All three aspects remain active.
+
+00:07.000 --> 00:14.000
+As batch-level standability attainment improves, the soft gate opens.
+This is reward feedback, not a fixed epoch-based handover.
+
+00:14.000 --> 00:21.000
+Fidelity and material gradually receive larger shares of the weight budget.
+The total scheduled weight remains 3.25.
+
+00:21.000 --> 00:27.000
+Their attainment gaps determine the relative multipliers.
+The aspect further behind receives the larger multiplier.
+
+00:27.000 --> 00:32.000
+Mechanism illustration: worked-example attainments, not training logs.
+The chair is schematic; the weight calculation follows the paper.
