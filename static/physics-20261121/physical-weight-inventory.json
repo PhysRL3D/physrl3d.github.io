@@ -1,0 +1,23 @@
+{
+  "unit": "g",
+  "definition": "Measured physical print mass before and after support removal.",
+  "cases": [
+    {"object":"Cat","method":"PhysRL3D-SAS","with_supports":23.6,"after_support_removal":20},
+    {"object":"Cat","method":"TRELLIS.2","with_supports":20,"after_support_removal":14.2},
+    {"object":"Dog","method":"PhysRL3D-SAS","with_supports":26.8,"after_support_removal":24.2},
+    {"object":"Dog","method":"TRELLIS.2","with_supports":26.9,"after_support_removal":23.7},
+    {"object":"Christmas tree","method":"PhysRL3D-SAS","with_supports":19,"after_support_removal":14.3},
+    {"object":"Christmas tree","method":"TRELLIS.2","with_supports":32.1,"after_support_removal":23.1},
+    {"object":"Penguin","method":"unspecified","with_supports":null,"after_support_removal":10}
+  ],
+  "missing": [
+    "Penguin with-supports mass",
+    "Method label for the penguin measurement",
+    "Any additional objects not listed by the user"
+  ],
+  "notes": [
+    "The supplied values are physical measurements, not slicer estimates.",
+    "No missing value is inferred from the other cases.",
+    "Object names and method labels should be confirmed before adding claims to the paper or supplementary tables."
+  ]
+}
